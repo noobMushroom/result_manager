@@ -1,3 +1,3 @@
 pub mod health_check;
-mod domain;
-mod users;
+pub mod domain;
+pub mod users;

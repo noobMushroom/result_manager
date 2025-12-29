@@ -8,7 +8,7 @@ impl Phone {
     pub fn parse(s: &str) -> Self {
         let is_empty_or_whitespace = is_empty_or_whitespace(s);
         let contain_forbidden_characters = contain_forbidden_characters(s);
-        let is_too_long = s.len() > 10;
+        let is_too_long = s.len() != 10;
 
         if contain_forbidden_characters || is_empty_or_whitespace || is_too_long {
             todo!()

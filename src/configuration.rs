@@ -20,11 +20,13 @@ impl DatabaseSettings {
     pub fn connection_string(&self) -> String {
         format!("postgresql://{}:{}@{}:{}/{}", self.username, self.password, self.host, self.port, self.database_name)
     }
+
+    pub fn connection_string_without_db(&self) -> String {
+        format!("postgresql://{}:{}@{}", self.username, self.password, self.host)
+    }
 }
 pub fn get_configuration() -> Result<Settings, config::ConfigError> {
     let settings = config::Config::builder()
         .add_source(config::File::with_name("configuration/configuration.toml"));
-    let set = settings.build()?.try_deserialize::<Settings>();
-    println!("{:#?}", set);
-    set
+    settings.build()?.try_deserialize::<Settings>()
 }
