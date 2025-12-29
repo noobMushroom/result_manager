@@ -3,7 +3,7 @@ use actix_web::{App, HttpServer};
 use std::net::TcpListener;
 
 mod routes;
-mod configuration;
+pub mod configuration;
 
 use crate::routes::health_check::health;
 
