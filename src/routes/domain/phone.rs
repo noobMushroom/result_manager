@@ -24,3 +24,14 @@ impl AsRef<str> for Phone {
         &self.0
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_parse() {
+        let phone = Phone::parse("0123456789");
+        assert_eq!("0123456789", phone.as_ref());
+    }
+}

@@ -23,3 +23,14 @@ impl AsRef<str> for Username {
         &self.0
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn parse_correct_name() {
+        let username = Username::parse("some");
+        assert_eq!("some", username.as_ref());
+    }
+}
