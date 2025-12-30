@@ -6,6 +6,7 @@ pub struct Username(String);
 
 
 impl Username {
+    #[allow(dead_code)]
     pub fn parse(s: &str) -> Self {
         let is_empty_or_whitespace = is_empty_or_whitespace(s);
         let contain_forbidden_characters = contain_forbidden_characters(s);
