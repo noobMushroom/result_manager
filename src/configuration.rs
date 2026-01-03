@@ -1,12 +1,12 @@
-use serde::Deserialize;
 use secrecy::{ExposeSecret, SecretString};
+use serde::Deserialize;
+use sqlx::postgres::PgConnectOptions;
 
 #[derive(Debug, Deserialize)]
 pub struct Settings {
     pub database: DatabaseSettings,
     pub application_port: u16,
 }
-
 
 #[derive(Debug, Deserialize)]
 pub struct DatabaseSettings {
@@ -18,12 +18,16 @@ pub struct DatabaseSettings {
 }
 
 impl DatabaseSettings {
-    pub fn connection_string(&self) -> String {
-        format!("postgresql://{}:{}@{}:{}/{}", self.username, self.password.expose_secret(), self.host, self.port, self.database_name)
+    pub fn without_db(&self) -> PgConnectOptions {
+        PgConnectOptions::new()
+            .host(&self.host)
+            .port(self.port)
+            .password(&self.password.expose_secret())
+            .username(&self.username)
     }
 
-    pub fn connection_string_without_db(&self) -> String {
-        format!("postgresql://{}:{}@{}", self.username, self.password.expose_secret(), self.host)
+    pub fn with_db(&self) -> PgConnectOptions {
+        self.without_db().database(&self.database_name)
     }
 }
 pub fn get_configuration() -> Result<Settings, config::ConfigError> {

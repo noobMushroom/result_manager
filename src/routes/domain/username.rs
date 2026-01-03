@@ -4,7 +4,6 @@ use serde::Deserialize;
 #[derive(Debug, Deserialize)]
 pub struct Username(String);
 
-
 impl Username {
     #[allow(dead_code)]
     pub fn parse(s: &str) -> Self {
@@ -18,13 +17,11 @@ impl Username {
     }
 }
 
-
 impl AsRef<str> for Username {
     fn as_ref(&self) -> &str {
         &self.0
     }
 }
-
 
 #[cfg(test)]
 mod tests {

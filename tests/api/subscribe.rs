@@ -42,10 +42,11 @@ pub async fn register_returns_400_missing_data() {
             .await
             .expect("failed to execute request.");
 
-        assert_eq!(400, response.status().as_u16(),
-                   "The api did not fail with 400.\n{}", error_message);
+        assert_eq!(
+            400,
+            response.status().as_u16(),
+            "The api did not fail with 400.\n{}",
+            error_message
+        );
     }
 }
-
-
-

@@ -1,8 +1,8 @@
-use result_management::configuration::{get_configuration, DatabaseSettings};
+use once_cell::sync::Lazy;
+use result_management::configuration::{DatabaseSettings, get_configuration};
 use result_management::telemetry::{get_subscriber, init_subscriber};
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use std::net::TcpListener;
-use once_cell::sync::Lazy;
 
 static TRACING: Lazy<()> = Lazy::new(|| {
     let default_filter_level = "info".to_string();
@@ -37,14 +37,14 @@ pub async fn spawn_app() -> TestApp {
     }
 }
 pub async fn configure_database(config: &DatabaseSettings) -> PgPool {
-    let mut connection = PgConnection::connect(&config.connection_string_without_db())
+    let mut connection = PgConnection::connect_with(&config.without_db())
         .await
-        .expect("failed to connect to Postgres");
+        .expect("failed to connect to the database");
     connection
         .execute(format!(r#"CREATE DATABASE "{}";"#, config.database_name).as_str())
         .await
         .expect("failed to create database page");
-    let connection_pool = PgPool::connect(&config.connection_string())
+    let connection_pool = PgPool::connect_with(config.with_db())
         .await
         .expect("failed to connect to Postgres");
 

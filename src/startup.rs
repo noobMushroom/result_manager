@@ -2,10 +2,10 @@ use crate::routes::health_check::health;
 use crate::routes::users::register::subscribe;
 use actix_web::dev::Server;
 use actix_web::middleware::Logger;
-use actix_web::{web, App, HttpServer};
+use actix_web::{App, HttpServer, web};
 use sqlx::PgPool;
-use tracing_actix_web::TracingLogger;
 use std::net::TcpListener;
+use tracing_actix_web::TracingLogger;
 
 pub fn run(listen: TcpListener, db_pool: PgPool) -> Result<Server, std::io::Error> {
     let connection = web::Data::new(db_pool);
@@ -15,6 +15,8 @@ pub fn run(listen: TcpListener, db_pool: PgPool) -> Result<Server, std::io::Erro
             .service(health)
             .service(subscribe)
             .app_data(connection.clone())
-    }).listen(listen)?.run();
+    })
+    .listen(listen)?
+    .run();
     Ok(server)
 }

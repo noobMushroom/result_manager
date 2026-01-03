@@ -1,6 +1,6 @@
 use crate::routes::domain::phone::Phone;
 use crate::routes::domain::username::Username;
-use actix_web::{post, web, HttpResponse, Responder};
+use actix_web::{HttpResponse, Responder, post, web};
 use chrono::Utc;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -21,22 +21,13 @@ pub struct UserData {
 )]
 #[post("/subscribe")]
 pub async fn subscribe(json: web::Json<UserData>, connection: web::Data<PgPool>) -> impl Responder {
-    match insert_subscriber(&connection, &json).await
-    {
-        Ok(_) => {
-            HttpResponse::Ok().body("Success")
-        }
-        Err(_) => {
-            HttpResponse::InternalServerError().finish()
-        }
+    match insert_subscriber(&connection, &json).await {
+        Ok(_) => HttpResponse::Ok().body("Success"),
+        Err(_) => HttpResponse::InternalServerError().finish(),
     }
 }
 
-
-#[tracing::instrument(
-    name = "saving the new subscriber to the database",
-    skip(json, pool),
-)]
+#[tracing::instrument(name = "saving the new subscriber to the database", skip(json, pool))]
 pub async fn insert_subscriber(pool: &PgPool, json: &UserData) -> Result<(), sqlx::Error> {
     sqlx::query!(
         r#"
@@ -47,12 +38,12 @@ pub async fn insert_subscriber(pool: &PgPool, json: &UserData) -> Result<(), sql
         json.username.as_ref(),
         json.phone.as_ref(),
         Utc::now()
-    ).execute(pool)
-        .await
-        .map_err(|e| {
-            tracing::error!("failed to execute query {}", e);
-            e
-        })?;
+    )
+    .execute(pool)
+    .await
+    .map_err(|e| {
+        tracing::error!("failed to execute query {}", e);
+        e
+    })?;
     Ok(())
 }
-

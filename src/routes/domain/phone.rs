@@ -19,13 +19,11 @@ impl Phone {
     }
 }
 
-
 impl AsRef<str> for Phone {
     fn as_ref(&self) -> &str {
         &self.0
     }
 }
-
 
 #[cfg(test)]
 mod tests {
