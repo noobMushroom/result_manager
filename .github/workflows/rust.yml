@@ -37,7 +37,6 @@ jobs:
           --version=${{ env.SQLX_VERSION }}
           --features ${{ env.SQLX_FEATURES }}
           --no-default-features
-          --locked
       - name: Create app user in Postgres
         run: |
           sudo apt-get install postgresql-client
@@ -108,7 +107,6 @@ jobs:
           --version=${{ env.SQLX_VERSION }}
           --features ${{ env.SQLX_FEATURES }}
           --no-default-features
-          --locked
       - name: Create app user in Postgres
         run: |
           sudo apt-get install postgresql-client
