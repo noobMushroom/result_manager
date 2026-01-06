@@ -88,6 +88,8 @@ WHERE g.name = 'Nursery'
   AND t.name IN ('Half Yearly Term', 'Second Term', 'Annual Term')
   AND s.code IN ('CLASS_PERF');
 
+-- LKG
+
 INSERT INTO assessment_scheme (grade_id, exam_id, subject_id, evaluation_type, max_marks)
 SELECT g.id, e.id, s.id, 'MARKS', 30
 FROM grades g
@@ -160,6 +162,8 @@ WHERE g.name = 'LKG'
   AND t.name IN ('First Term', 'Half Yearly Term', 'Second Term', 'Annual Term')
   AND s.code IN ('CLASS_PERF');
 
+-- UKG
+
 INSERT INTO assessment_scheme (grade_id, exam_id, subject_id, evaluation_type, max_marks)
 SELECT g.id, e.id, s.id, 'MARKS', 50
 FROM grades g
@@ -231,3 +235,203 @@ WHERE g.name = 'UKG'
   AND et.code = 'CLASS_PER'
   AND t.name IN ('First Term', 'Half Yearly Term', 'Second Term', 'Annual Term')
   AND s.code IN ('CLASS_PERF');
+
+-- Class 1st --
+-- unit 1 written exames
+
+INSERT INTO assessment_scheme (grade_id, exam_id, subject_id, evaluation_type, max_marks)
+SELECT g.id, e.id, s.id, 'MARKS', 20
+FROM grades g
+JOIN exams e ON true
+JOIN exam_types et ON e.exam_type_id = et.id
+JOIN terms t ON e.term_id = t.id
+JOIN subjects s ON true
+WHERE g.name = '1'
+  AND et.code = 'UT'
+  AND t.name IN ('First Term')
+  AND s.code IN ('ENG_LIT', 'ENG_LANG', 'HIN', 'MATHS', 'SST', 'EVS', 'COMP', 'GK');
+
+-- Unit test 1 grade exams
+
+INSERT INTO assessment_scheme (grade_id, exam_id, subject_id, evaluation_type)
+SELECT g.id, e.id, s.id, 'GRADE'
+FROM grades g
+JOIN exams e ON true
+JOIN exam_types et ON e.exam_type_id = et.id
+JOIN terms t ON e.term_id = t.id
+JOIN subjects s ON true
+WHERE g.name = '1'
+  AND et.code = 'UT'
+  AND t.name IN ('First Term')
+  AND s.code IN ('DRAW');
+
+
+-- half yearly written exams
+-- Copy work
+
+INSERT INTO assessment_scheme (grade_id, exam_id, subject_id, evaluation_type, max_marks)
+SELECT g.id, e.id, s.id, 'MARKS', 10
+FROM grades g
+JOIN exams e ON true
+JOIN exam_types et ON e.exam_type_id = et.id
+JOIN terms t ON e.term_id = t.id
+JOIN subjects s ON true
+WHERE g.name = '1'
+  AND et.code = 'COPY_WORK'
+  AND t.name IN ('Half Yearly Term')
+  AND s.code IN ('ENG_LIT', 'ENG_LANG', 'HIN', 'MATHS', 'SST', 'EVS', 'COMP', 'GK');
+
+-- class work
+
+INSERT INTO assessment_scheme (grade_id, exam_id, subject_id, evaluation_type, max_marks)
+SELECT g.id, e.id, s.id, 'MARKS', 10
+FROM grades g
+JOIN exams e ON true
+JOIN exam_types et ON e.exam_type_id = et.id
+JOIN terms t ON e.term_id = t.id
+JOIN subjects s ON true
+WHERE g.name = '1'
+  AND et.code = 'CLASS_WORK'
+  AND t.name IN ('Half Yearly Term')
+  AND s.code IN ('ENG_LIT', 'ENG_LANG', 'HIN', 'MATHS', 'SST', 'EVS', 'COMP', 'GK');
+
+-- oral pactical
+INSERT INTO assessment_scheme (grade_id, exam_id, subject_id, evaluation_type, max_marks)
+SELECT g.id, e.id, s.id, 'MARKS', 10
+FROM grades g
+JOIN exams e ON true
+JOIN exam_types et ON e.exam_type_id = et.id
+JOIN terms t ON e.term_id = t.id
+JOIN subjects s ON true
+WHERE g.name = '1'
+  AND et.code = 'ORAL_PRAC'
+  AND t.name IN ('Half Yearly Term')
+  AND s.code IN ('ENG_LIT', 'ENG_LANG', 'HIN', 'MATHS', 'SST', 'EVS', 'COMP', 'GK');
+
+--Written
+INSERT INTO assessment_scheme (grade_id, exam_id, subject_id, evaluation_type, max_marks)
+SELECT g.id, e.id, s.id, 'MARKS', 10
+FROM grades g
+JOIN exams e ON true
+JOIN exam_types et ON e.exam_type_id = et.id
+JOIN terms t ON e.term_id = t.id
+JOIN subjects s ON true
+WHERE g.name = '1'
+  AND et.code = 'WRITT'
+  AND t.name IN ('Half Yearly Term')
+  AND s.code IN ('ENG_LIT', 'ENG_LANG', 'HIN', 'MATHS', 'SST', 'EVS', 'COMP', 'GK');
+
+-- half yearly grade exams
+-- Written 
+INSERT INTO assessment_scheme (grade_id, exam_id, subject_id, evaluation_type)
+SELECT g.id, e.id, s.id, 'GRADE'
+FROM grades g
+JOIN exams e ON true
+JOIN exam_types et ON e.exam_type_id = et.id
+JOIN terms t ON e.term_id = t.id
+JOIN subjects s ON true
+WHERE g.name = '1'
+  AND et.code = 'WRITT'
+  AND t.name IN ('Half Yearly Term')
+  AND s.code IN ('DRAW', 'PT');
+
+
+
+-- unit 2 written exames
+
+INSERT INTO assessment_scheme (grade_id, exam_id, subject_id, evaluation_type, max_marks)
+SELECT g.id, e.id, s.id, 'MARKS', 20
+FROM grades g
+JOIN exams e ON true
+JOIN exam_types et ON e.exam_type_id = et.id
+JOIN terms t ON e.term_id = t.id
+JOIN subjects s ON true
+WHERE g.name = '1'
+  AND et.code = 'UT'
+  AND t.name IN ('Second Term')
+  AND s.code IN ('ENG_LIT', 'ENG_LANG', 'HIN', 'MATHS', 'SST', 'EVS', 'COMP', 'GK');
+
+-- Unit test 2 grade exams
+
+INSERT INTO assessment_scheme (grade_id, exam_id, subject_id, evaluation_type)
+SELECT g.id, e.id, s.id, 'GRADE'
+FROM grades g
+JOIN exams e ON true
+JOIN exam_types et ON e.exam_type_id = et.id
+JOIN terms t ON e.term_id = t.id
+JOIN subjects s ON true
+WHERE g.name = '1'
+  AND et.code = 'UT'
+  AND t.name IN ('Second Term')
+  AND s.code IN ('DRAW');
+
+
+-- Annual written exams
+-- Copy work
+
+INSERT INTO assessment_scheme (grade_id, exam_id, subject_id, evaluation_type, max_marks)
+SELECT g.id, e.id, s.id, 'MARKS', 10
+FROM grades g
+JOIN exams e ON true
+JOIN exam_types et ON e.exam_type_id = et.id
+JOIN terms t ON e.term_id = t.id
+JOIN subjects s ON true
+WHERE g.name = '1'
+  AND et.code = 'COPY_WORK'
+  AND t.name IN ('Annual Term')
+  AND s.code IN ('ENG_LIT', 'ENG_LANG', 'HIN', 'MATHS', 'SST', 'EVS', 'COMP', 'GK');
+
+-- class work
+
+INSERT INTO assessment_scheme (grade_id, exam_id, subject_id, evaluation_type, max_marks)
+SELECT g.id, e.id, s.id, 'MARKS', 10
+FROM grades g
+JOIN exams e ON true
+JOIN exam_types et ON e.exam_type_id = et.id
+JOIN terms t ON e.term_id = t.id
+JOIN subjects s ON true
+WHERE g.name = '1'
+  AND et.code = 'CLASS_WORK'
+  AND t.name IN ('Annual Term')
+  AND s.code IN ('ENG_LIT', 'ENG_LANG', 'HIN', 'MATHS', 'SST', 'EVS', 'COMP', 'GK');
+
+-- oral pactical
+INSERT INTO assessment_scheme (grade_id, exam_id, subject_id, evaluation_type, max_marks)
+SELECT g.id, e.id, s.id, 'MARKS', 10
+FROM grades g
+JOIN exams e ON true
+JOIN exam_types et ON e.exam_type_id = et.id
+JOIN terms t ON e.term_id = t.id
+JOIN subjects s ON true
+WHERE g.name = '1'
+  AND et.code = 'ORAL_PRAC'
+  AND t.name IN ('Annual Term')
+  AND s.code IN ('ENG_LIT', 'ENG_LANG', 'HIN', 'MATHS', 'SST', 'EVS', 'COMP', 'GK');
+
+--Written
+INSERT INTO assessment_scheme (grade_id, exam_id, subject_id, evaluation_type, max_marks)
+SELECT g.id, e.id, s.id, 'MARKS', 10
+FROM grades g
+JOIN exams e ON true
+JOIN exam_types et ON e.exam_type_id = et.id
+JOIN terms t ON e.term_id = t.id
+JOIN subjects s ON true
+WHERE g.name = '1'
+  AND et.code = 'WRITT'
+  AND t.name IN ('Annual Term')
+  AND s.code IN ('ENG_LIT', 'ENG_LANG', 'HIN', 'MATHS', 'SST', 'EVS', 'COMP', 'GK');
+
+-- Annual grade exams
+-- Written 
+INSERT INTO assessment_scheme (grade_id, exam_id, subject_id, evaluation_type)
+SELECT g.id, e.id, s.id, 'GRADE'
+FROM grades g
+JOIN exams e ON true
+JOIN exam_types et ON e.exam_type_id = et.id
+JOIN terms t ON e.term_id = t.id
+JOIN subjects s ON true
+WHERE g.name = '1'
+  AND et.code = 'WRITT'
+  AND t.name IN ('Annual Term')
+  AND s.code IN ('DRAW', 'PT');
+
