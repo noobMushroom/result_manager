@@ -159,3 +159,75 @@ WHERE g.name = 'LKG'
   AND et.code = 'CLASS_PER'
   AND t.name IN ('First Term', 'Half Yearly Term', 'Second Term', 'Annual Term')
   AND s.code IN ('CLASS_PERF');
+
+INSERT INTO assessment_scheme (grade_id, exam_id, subject_id, evaluation_type, max_marks)
+SELECT g.id, e.id, s.id, 'MARKS', 50
+FROM grades g
+JOIN exams e ON true
+JOIN exam_types et ON e.exam_type_id = et.id
+JOIN terms t ON e.term_id = t.id
+JOIN subjects s ON true
+WHERE g.name = 'UKG'
+  AND et.code = 'WRITT'
+  AND t.name IN ('First Term', 'Half Yearly Term', 'Second Term', 'Annual Term')
+  AND s.code IN ('MATHS', 'ENG', 'HIN', 'GS');
+
+INSERT INTO assessment_scheme (grade_id, exam_id, subject_id, evaluation_type, max_marks)
+SELECT g.id, e.id, s.id, 'MARKS', 10
+FROM grades g
+JOIN exams e ON true
+JOIN exam_types et ON e.exam_type_id = et.id
+JOIN terms t ON e.term_id = t.id
+JOIN subjects s ON true
+WHERE g.name = 'UKG'
+  AND et.code = 'HW'
+  AND t.name IN ('First Term', 'Half Yearly Term', 'Second Term', 'Annual Term')
+  AND s.code IN ('MATHS', 'ENG', 'HIN', 'GS');
+
+INSERT INTO assessment_scheme (grade_id, exam_id, subject_id, evaluation_type, max_marks)
+SELECT g.id, e.id, s.id, 'MARKS', 10
+FROM grades g
+JOIN exams e ON true
+JOIN exam_types et ON e.exam_type_id = et.id
+JOIN terms t ON e.term_id = t.id
+JOIN subjects s ON true
+WHERE g.name = 'UKG'
+  AND et.code = 'CN'
+  AND t.name IN ('First Term', 'Half Yearly Term', 'Second Term', 'Annual Term')
+  AND s.code IN ('MATHS', 'ENG', 'HIN', 'GS');
+
+INSERT INTO assessment_scheme (grade_id, exam_id, subject_id, evaluation_type)
+SELECT g.id, e.id, s.id, 'GRADE'
+FROM grades g
+JOIN exams e ON true
+JOIN exam_types et ON e.exam_type_id = et.id
+JOIN terms t ON e.term_id = t.id
+JOIN subjects s ON true
+WHERE g.name = 'UKG'
+  AND et.code = 'ORAL_PRAC'
+  AND t.name IN ('First Term', 'Half Yearly Term', 'Second Term', 'Annual Term')
+  AND s.code IN ('ENG_ORAL', 'ENG_RHYMES','HIN_ORAL', 'HIN_RHYMES','MATHS_ORAL', 'GS_ORAL');
+
+INSERT INTO assessment_scheme (grade_id, exam_id, subject_id, evaluation_type)
+SELECT g.id, e.id, s.id, 'GRADE'
+FROM grades g
+JOIN exams e ON true
+JOIN exam_types et ON e.exam_type_id = et.id
+JOIN terms t ON e.term_id = t.id
+JOIN subjects s ON true
+WHERE g.name = 'UKG'
+  AND et.code = 'ACTIVITY'
+  AND t.name IN ('First Term', 'Half Yearly Term', 'Second Term', 'Annual Term')
+  AND s.code IN ('WELL_DRESSED', 'DRAW','PT', 'WORKSHEET');
+
+INSERT INTO assessment_scheme (grade_id, exam_id, subject_id, evaluation_type)
+SELECT g.id, e.id, s.id, 'GRADE'
+FROM grades g
+JOIN exams e ON true
+JOIN exam_types et ON e.exam_type_id = et.id
+JOIN terms t ON e.term_id = t.id
+JOIN subjects s ON true
+WHERE g.name = 'UKG'
+  AND et.code = 'CLASS_PER'
+  AND t.name IN ('First Term', 'Half Yearly Term', 'Second Term', 'Annual Term')
+  AND s.code IN ('CLASS_PERF');
