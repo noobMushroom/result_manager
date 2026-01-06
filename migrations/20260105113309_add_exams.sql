@@ -26,7 +26,6 @@ INSERT INTO exam_types (name, code) VALUES
   ('Unit Test', 'UT'),
   ('Class Performance', 'CLASS_PER'),
   ('Copy Work', 'COPY_WORK'),
-  ('Class Work', 'CLASS_WORK'),
   ('Activity', 'ACTIVITY'),
   ('Half Yearly', 'HALF_YEARLY'),
   ('Oral/Practical', 'ORAL_PRAC'),
@@ -93,28 +92,6 @@ INSERT INTO exams (exam_type_id, term_id, display_name)
 SELECT et.id, t.id, 'Copy Work'
 FROM exam_types et, terms t
 WHERE et.code = 'COPY_WORK' AND t.name = 'Annual Term';
-
-
---  Class Work
-INSERT INTO exams (exam_type_id, term_id, display_name)
-SELECT et.id, t.id, 'Class Work'
-FROM exam_types et, terms t
-WHERE et.code = 'CLASS_WORK' AND t.name = 'First Term';
-
-INSERT INTO exams (exam_type_id, term_id, display_name)
-SELECT et.id, t.id, 'Class Work'
-FROM exam_types et, terms t
-WHERE et.code = 'CLASS_WORK' AND t.name = 'Half Yearly Term';
-
-INSERT INTO exams (exam_type_id, term_id, display_name)
-SELECT et.id, t.id, 'Class Work'
-FROM exam_types et, terms t
-WHERE et.code = 'CLASS_WORK' AND t.name = 'Second Term';
-
-INSERT INTO exams (exam_type_id, term_id, display_name)
-SELECT et.id, t.id, 'Class Work'
-FROM exam_types et, terms t
-WHERE et.code = 'CLASS_WORK' AND t.name = 'Annual Term';
 
 -- Class performance
 INSERT INTO exams (exam_type_id, term_id, display_name)
