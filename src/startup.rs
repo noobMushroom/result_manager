@@ -1,4 +1,5 @@
 use crate::routes::health_check::health;
+use crate::routes::students::register::register_student;
 use crate::routes::users::register::subscribe;
 use actix_web::dev::Server;
 use actix_web::{App, HttpServer, web};
@@ -13,6 +14,7 @@ pub fn run(listen: TcpListener, db_pool: PgPool) -> Result<Server, std::io::Erro
             .wrap(TracingLogger::default())
             .service(health)
             .service(subscribe)
+            .service(register_student)
             .app_data(connection.clone())
     })
     .listen(listen)?

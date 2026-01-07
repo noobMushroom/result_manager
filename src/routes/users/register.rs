@@ -1,5 +1,5 @@
-use crate::routes::domain::phone::Phone;
-use crate::routes::domain::username::Username;
+use crate::domain::phone::Phone;
+use crate::domain::username::Username;
 use actix_web::{HttpResponse, Responder, post, web};
 use chrono::Utc;
 use sqlx::PgPool;
