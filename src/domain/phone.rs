@@ -1,4 +1,4 @@
-use crate::error::ApplicationError;
+use crate::domain::errors::DomainError;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -6,13 +6,13 @@ pub struct Phone(String);
 
 impl Phone {
     #[allow(dead_code)]
-    pub fn parse(s: &str) -> Result<Self, ApplicationError> {
+    pub fn parse(s: &str) -> Result<Self, DomainError> {
         if s.trim().is_empty() {
-            return Err(ApplicationError::Validation("Empty string".to_string()));
+            return Err(DomainError::InvalidPhone);
         }
 
         if s.chars().any(|c| !c.is_numeric()) || s.len() != 10 {
-            return Err(ApplicationError::Validation("Invalid number".to_string()));
+            return Err(DomainError::InvalidPhone);
         }
 
         Ok(Self(s.to_string()))

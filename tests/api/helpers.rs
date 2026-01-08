@@ -3,6 +3,7 @@ use result_management::configuration::{DatabaseSettings, get_configuration};
 use result_management::telemetry::{get_subscriber, init_subscriber};
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use std::net::TcpListener;
+use uuid::Uuid;
 
 static TRACING: Lazy<()> = Lazy::new(|| {
     let default_filter_level = "info".to_string();
@@ -20,6 +21,16 @@ pub struct TestApp {
     pub address: String,
     pub db_pool: PgPool,
 }
+
+pub async fn get_grade_id(grade: &str, db_pool: &PgPool) -> Uuid {
+    let record = sqlx::query!(r#"SELECT id FROM grades WHERE name = $1"#, grade)
+        .fetch_one(db_pool)
+        .await
+        .expect("failed to fetch id");
+
+    record.id
+}
+
 pub async fn spawn_app() -> TestApp {
     Lazy::force(&TRACING);
     let listener = TcpListener::bind("127.0.0.1:0").expect("Failed to bind random port");

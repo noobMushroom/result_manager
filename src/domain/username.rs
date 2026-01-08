@@ -1,10 +1,9 @@
-use crate::error::ApplicationError;
+use crate::domain::errors::DomainError;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 pub struct Username(String);
 
-#[allow(dead_code)]
 pub fn contain_forbidden_characters(s: &str) -> bool {
     let forbidden_characters = ['/', '(', ')', '"', '<', '>', '\\'];
     s.chars()
@@ -12,12 +11,11 @@ pub fn contain_forbidden_characters(s: &str) -> bool {
 }
 
 impl Username {
-    #[allow(dead_code)]
-    pub fn parse(s: &str) -> Result<Self, ApplicationError> {
+    pub fn parse(s: &str) -> Result<Self, DomainError> {
         let is_empty_or_whitespace = s.trim().is_empty();
         let contain_forbidden_characters = contain_forbidden_characters(s);
         if contain_forbidden_characters || is_empty_or_whitespace {
-            return Err(ApplicationError::Validation("Invalid username".to_string()));
+            return Err(DomainError::InvalidName);
         } else {
             Ok(Self(s.to_string()))
         }

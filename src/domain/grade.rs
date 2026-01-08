@@ -1,24 +1,31 @@
-use crate::error::UserError;
+use crate::domain::errors::DomainError;
 
 pub struct Grade(String);
 
 impl Grade {
-    pub fn parse(s: &str) -> Result<Self, UserError> {
+    pub fn parse(s: &str) -> Result<Self, DomainError> {
         let s = s.trim();
 
         if s.is_empty() {
-            return Err(UserError::InvalidGrade);
+            return Err(DomainError::InvalidGrade);
         }
+        let normalized = s.to_uppercase();
 
         let grades = [
-            "Nursery", "LKG", "UKG", "1", "2", "3", "4", "5", "6", "7", "8",
+            "NURSERY", "LKG", "UKG", "1", "2", "3", "4", "5", "6", "7", "8",
         ];
 
-        if !grades.contains(&s) {
-            return Err(UserError::InvalidGrade);
+        if !grades.contains(&&normalized.as_str()) {
+            return Err(DomainError::InvalidGrade);
         }
 
         Ok(Self(s.to_string()))
+    }
+}
+
+impl AsRef<str> for Grade {
+    fn as_ref(&self) -> &str {
+        &self.0
     }
 }
 
@@ -40,10 +47,7 @@ mod tests {
 
     #[test]
     fn invalid_grades_are_rejected() {
-        let cases = [
-            "", " ", "nursery", // wrong case
-            "KG", "0", "9", "Class 1", "Ten",
-        ];
+        let cases = ["", " ", "KG", "0", "9", "Class 1", "Ten"];
 
         for grade in cases {
             let parsed = Grade::parse(grade);

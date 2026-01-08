@@ -17,6 +17,11 @@ pub enum AppError {
     Internal,
 }
 
+#[derive(serde::Serialize)]
+pub struct ErrorResponse<'a> {
+    pub error: &'a str,
+}
+
 impl From<DomainError> for AppError {
     fn from(err: DomainError) -> Self {
         match err {
@@ -32,13 +37,17 @@ impl From<DomainError> for AppError {
 
 impl ResponseError for AppError {
     fn error_response(&self) -> HttpResponse {
-        match self {
-            AppError::BadRequest(msg) => HttpResponse::build(self.status_code())
-                .insert_header(ContentType::json())
-                .body(msg),
-            AppError::Conflict(msg) => HttpResponse::Conflict().json(msg),
+        let mut builder = HttpResponse::build(self.status_code());
 
-            AppError::Internal => HttpResponse::InternalServerError().finish(),
+        match self {
+            AppError::BadRequest(msg) | AppError::Conflict(msg) => builder
+                .insert_header(ContentType::json())
+                .json(ErrorResponse { error: msg }),
+            AppError::Internal => builder
+                .insert_header(ContentType::json())
+                .json(ErrorResponse {
+                    error: "Internal server error",
+                }),
         }
     }
 

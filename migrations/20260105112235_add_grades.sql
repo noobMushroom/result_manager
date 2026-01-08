@@ -8,7 +8,7 @@ CREATE TABLE grades (
 );
 
 INSERT INTO grades (name, sort_order) VALUES
-  ('Nursery', 0),
+  ('NURSERY', 0),
   ('LKG', 1),
   ('UKG', 2),
   ('1', 3),
