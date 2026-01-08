@@ -4,21 +4,15 @@ use serde::Deserialize;
 #[derive(Debug, Deserialize)]
 pub struct Username(String);
 
-pub fn contain_forbidden_characters(s: &str) -> bool {
-    let forbidden_characters = ['/', '(', ')', '"', '<', '>', '\\'];
-    s.chars()
-        .any(|c| c.is_numeric() || forbidden_characters.contains(&c))
-}
-
 impl Username {
     pub fn parse(s: &str) -> Result<Self, DomainError> {
-        let is_empty_or_whitespace = s.trim().is_empty();
-        let contain_forbidden_characters = contain_forbidden_characters(s);
-        if contain_forbidden_characters || is_empty_or_whitespace {
-            Err(DomainError::InvalidName)
-        } else {
-            Ok(Self(s.to_string()))
+        if s.trim().is_empty() {
+            return Err(DomainError::InvalidName);
         }
+        if s.chars().any(|c| !c.is_alphabetic()) {
+            return Err(DomainError::InvalidName);
+        }
+        Ok(Self(s.to_string()))
     }
 }
 

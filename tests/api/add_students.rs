@@ -1,5 +1,6 @@
 use crate::helpers::{get_grade_id, spawn_app};
 use chrono::NaiveDate;
+use serde_json::Value;
 
 #[actix::test]
 pub async fn register_student_returns_200_valid_data() {
@@ -73,6 +74,18 @@ async fn register_fails_if_admission_no_exists() {
         .expect("failed to execute request.");
 
     assert_eq!(response.status().as_u16(), 409);
+
+    let resp_body: Value = response.json().await.expect("failed to get json");
+    assert_eq!(resp_body["error"], "admission number already exists");
+
+    let count = sqlx::query!("SELECT COUNT(*) as count FROM students")
+        .fetch_one(&app.db_pool)
+        .await
+        .unwrap()
+        .count
+        .unwrap();
+
+    assert_eq!(count, 1);
 }
 
 #[actix::test]
@@ -82,7 +95,7 @@ async fn register_fails_for_invalid_grade() {
 
     let body = serde_json::json!({
         "name": "student",
-        "date_of_birth": "2-12-2023",
+        "date_of_birth": "02-12-2023",
         "admission_no": 99,
         "father_name": "dad",
         "grade": "INVALID"
@@ -91,12 +104,26 @@ async fn register_fails_for_invalid_grade() {
 
     let response = client
         .post(format!("{}/add_student", &app.address))
+        .header("content-type", "application/json")
         .body(body)
         .send()
         .await
         .unwrap();
 
     assert_eq!(response.status().as_u16(), 400);
+
+    let resp_body: Value = response.json().await.expect("failed to get json");
+
+    assert_eq!(resp_body["error"], "invalid grade");
+
+    let count = sqlx::query!("SELECT COUNT(*) as count FROM students")
+        .fetch_one(&app.db_pool)
+        .await
+        .unwrap()
+        .count
+        .unwrap();
+
+    assert_eq!(count, 0);
 }
 
 #[actix::test]
@@ -123,4 +150,54 @@ async fn register_fails_for_invalid_dob_format() {
         .unwrap();
 
     assert_eq!(response.status().as_u16(), 400);
+
+    let resp_body: Value = response.json().await.expect("failed to get json");
+    assert_eq!(resp_body["error"], "invalid date of birth");
+
+    let count = sqlx::query!("SELECT COUNT(*) as count FROM students")
+        .fetch_one(&app.db_pool)
+        .await
+        .unwrap()
+        .count
+        .unwrap();
+
+    assert_eq!(count, 0);
+}
+
+#[actix::test]
+async fn register_fails_for_invalid_name() {
+    let app = spawn_app().await;
+    let client = reqwest::Client::new();
+
+    let body = r#"
+    {
+        "name": "student ...,,",
+        "date_of_birth": "23-12-2223",
+        "admission_no": 1,
+        "father_name": "dad",
+        "grade": "LKG"
+    }
+    "#;
+
+    let response = client
+        .post(format!("{}/add_student", &app.address))
+        .header("content-type", "application/json")
+        .body(body)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status().as_u16(), 400);
+
+    let resp_body: Value = response.json().await.expect("failed to get json");
+    assert_eq!(resp_body["error"], "invalid name");
+
+    let count = sqlx::query!("SELECT COUNT(*) as count FROM students")
+        .fetch_one(&app.db_pool)
+        .await
+        .unwrap()
+        .count
+        .unwrap();
+
+    assert_eq!(count, 0);
 }
