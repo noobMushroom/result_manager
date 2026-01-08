@@ -15,7 +15,7 @@ impl Grade {
             "NURSERY", "LKG", "UKG", "1", "2", "3", "4", "5", "6", "7", "8",
         ];
 
-        if !grades.contains(&&normalized.as_str()) {
+        if !grades.contains(&normalized.as_str()) {
             return Err(DomainError::InvalidGrade);
         }
 

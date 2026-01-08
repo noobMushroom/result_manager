@@ -59,7 +59,7 @@ pub async fn register_student(
 
 #[tracing::instrument(name = "saving the new student to the database", skip(student, pool))]
 pub async fn insert_student(pool: &PgPool, student: &NewStudent) -> Result<(), DomainError> {
-    let grade = get_grade_uuid(&pool, student.grade.as_ref()).await?;
+    let grade = get_grade_uuid(pool, student.grade.as_ref()).await?;
     match sqlx::query!(
         r#"
             INSERT INTO students (id, grade_id, name, father_name, admission_no, date_of_birth)

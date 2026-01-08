@@ -15,7 +15,7 @@ impl Username {
         let is_empty_or_whitespace = s.trim().is_empty();
         let contain_forbidden_characters = contain_forbidden_characters(s);
         if contain_forbidden_characters || is_empty_or_whitespace {
-            return Err(DomainError::InvalidName);
+            Err(DomainError::InvalidName)
         } else {
             Ok(Self(s.to_string()))
         }
