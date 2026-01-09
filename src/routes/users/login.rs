@@ -4,6 +4,7 @@ use sqlx::PgPool;
 use crate::{
     domain::{errors::DomainError, phone::Phone},
     errors::AppError,
+    routes::users::otp::insert_otp,
 };
 
 #[derive(serde::Deserialize)]
@@ -27,6 +28,7 @@ pub async fn teacher_login(
     if !check_user(&phone, &pool).await.is_ok() {
         return Ok(HttpResponse::Ok().finish());
     }
+    insert_otp(&pool, &phone).await?;
 
     Ok(HttpResponse::Ok().finish())
 }
