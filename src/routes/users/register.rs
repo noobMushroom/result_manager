@@ -1,49 +1,75 @@
-use crate::domain::phone::Phone;
+use crate::domain::errors::DomainError;
 use crate::domain::username::Username;
-use actix_web::{HttpResponse, Responder, post, web};
+use crate::domain::{new_teacher::NewTeacher, phone::Phone};
+use crate::errors::AppError;
+use actix_web::{HttpResponse, post, web};
 use chrono::Utc;
 use sqlx::PgPool;
 use uuid::Uuid;
 
 #[derive(serde::Deserialize)]
-pub struct UserData {
-    pub username: Username,
-    pub phone: Phone,
+struct UserData {
+    name: String,
+    phone: String,
+    role: String,
+}
+
+impl TryFrom<UserData> for NewTeacher {
+    type Error = DomainError;
+
+    fn try_from(value: UserData) -> Result<Self, Self::Error> {
+        let name = Username::parse(&value.name)?;
+        let phone = Phone::parse(&value.phone)?;
+        let role = value.role.as_str().try_into()?;
+
+        Ok(Self { name, phone, role })
+    }
 }
 
 #[tracing::instrument(
     name = "adding a new subscriber",
     skip(json, connection),
     fields(
-        name = %json.username.as_ref(),
-        phone = %json.phone.as_ref()
+        name = %json.name,
+        phone = %json.phone
     )
 )]
-#[post("/subscribe")]
-pub async fn subscribe(json: web::Json<UserData>, connection: web::Data<PgPool>) -> impl Responder {
-    match insert_subscriber(&connection, &json).await {
-        Ok(_) => HttpResponse::Ok().body("Success"),
-        Err(_) => HttpResponse::InternalServerError().finish(),
-    }
+#[post("/auth/add_teacher")]
+pub async fn add_teacher(
+    json: web::Json<UserData>,
+    connection: web::Data<PgPool>,
+) -> Result<HttpResponse, AppError> {
+    let new_teacher: NewTeacher = json.into_inner().try_into()?;
+    insert_teacher(&connection, &new_teacher).await?;
+    Ok(HttpResponse::Ok().finish())
 }
 
-#[tracing::instrument(name = "saving the new subscriber to the database", skip(json, pool))]
-pub async fn insert_subscriber(pool: &PgPool, json: &UserData) -> Result<(), sqlx::Error> {
-    sqlx::query!(
+#[tracing::instrument(
+    name = "saving the new student to the database",
+    skip(new_teacher, pool)
+)]
+async fn insert_teacher(pool: &PgPool, new_teacher: &NewTeacher) -> Result<(), DomainError> {
+    match sqlx::query!(
         r#"
-            INSERT INTO subscriptions (id, name, phone_no, subscribed_at)
-            VALUES ($1, $2, $3, $4)
+            INSERT INTO teachers(id, phone_no, name, subscribed_at, role)
+            VALUES ($1, $2, $3, $4, $5)
         "#,
         Uuid::new_v4(),
-        json.username.as_ref(),
-        json.phone.as_ref(),
-        Utc::now()
+        new_teacher.name.as_ref(),
+        new_teacher.phone.as_ref(),
+        Utc::now(),
+        new_teacher.role.to_string()
     )
     .execute(pool)
     .await
-    .map_err(|e| {
-        tracing::error!("failed to execute query {}", e);
-        e
-    })?;
-    Ok(())
+    {
+        Ok(_) => Ok(()),
+        Err(sqlx::Error::Database(db_error))
+            if db_error.constraint() == Some("subscriptions_phone_no_key") =>
+        {
+            Err(DomainError::DuplicatePhoneNo)
+        }
+
+        _ => Err(DomainError::Internal),
+    }
 }

@@ -82,7 +82,7 @@ pub async fn insert_student(pool: &PgPool, student: &NewStudent) -> Result<(), D
             Err(DomainError::DuplicateAdmissionNo)
         }
 
-        _ => Err(DomainError::InvalidGrade),
+        _ => Err(DomainError::Internal),
     }
 }
 

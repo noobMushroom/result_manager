@@ -28,9 +28,14 @@ impl From<DomainError> for AppError {
             DomainError::InvalidName
             | DomainError::InvalidPhone
             | DomainError::InvalidGrade
-            | DomainError::InvalidDateOfBirth => AppError::BadRequest(err.to_string()),
+            | DomainError::InvalidDateOfBirth
+            | DomainError::InvalidRole
+            | DomainError::UserNotFound => AppError::BadRequest(err.to_string()),
 
-            DomainError::DuplicateAdmissionNo => AppError::Conflict(err.to_string()),
+            DomainError::DuplicateAdmissionNo | DomainError::DuplicatePhoneNo => {
+                AppError::Conflict(err.to_string())
+            }
+            DomainError::Internal => AppError::Internal,
         }
     }
 }

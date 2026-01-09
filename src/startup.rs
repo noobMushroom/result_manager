@@ -1,6 +1,7 @@
 use crate::routes::health_check::health;
 use crate::routes::students::register::register_student;
-use crate::routes::users::register::subscribe;
+use crate::routes::users::login::teacher_login;
+use crate::routes::users::register::add_teacher;
 use actix_web::dev::Server;
 use actix_web::{App, HttpServer, web};
 use sqlx::PgPool;
@@ -12,9 +13,13 @@ pub fn run(listen: TcpListener, db_pool: PgPool) -> Result<Server, std::io::Erro
     let server = HttpServer::new(move || {
         App::new()
             .wrap(TracingLogger::default())
+            .service(
+                web::scope("/auth")
+                    .service(teacher_login)
+                    .service(add_teacher),
+            )
+            .service(web::scope("/student").service(register_student))
             .service(health)
-            .service(subscribe)
-            .service(register_student)
             .app_data(connection.clone())
     })
     .listen(listen)?

@@ -16,7 +16,7 @@ pub async fn register_student_returns_200_valid_data() {
     })
     .to_string();
     let response = client
-        .post(format!("{}/add_student", &app.address))
+        .post(format!("{}/student/add_student", &app.address))
         .header("content-type", "application/json")
         .body(body)
         .send()
@@ -58,7 +58,7 @@ async fn register_fails_if_admission_no_exists() {
     .to_string();
 
     client
-        .post(format!("{}/add_student", &app.address))
+        .post(format!("{}/student/add_student", &app.address))
         .header("content-type", "application/json")
         .body(body.clone())
         .send()
@@ -66,7 +66,7 @@ async fn register_fails_if_admission_no_exists() {
         .expect("failed to execute request.");
 
     let response = client
-        .post(format!("{}/add_student", &app.address))
+        .post(format!("{}/student/add_student", &app.address))
         .header("content-type", "application/json")
         .body(body)
         .send()
@@ -103,7 +103,7 @@ async fn register_fails_for_invalid_grade() {
     .to_string();
 
     let response = client
-        .post(format!("{}/add_student", &app.address))
+        .post(format!("{}/student/add_student", &app.address))
         .header("content-type", "application/json")
         .body(body)
         .send()
@@ -142,7 +142,7 @@ async fn register_fails_for_invalid_dob_format() {
     "#;
 
     let response = client
-        .post(format!("{}/add_student", &app.address))
+        .post(format!("{}/student/add_student", &app.address))
         .header("content-type", "application/json")
         .body(body)
         .send()
@@ -180,7 +180,7 @@ async fn register_fails_for_invalid_name() {
     "#;
 
     let response = client
-        .post(format!("{}/add_student", &app.address))
+        .post(format!("{}/student/add_student", &app.address))
         .header("content-type", "application/json")
         .body(body)
         .send()

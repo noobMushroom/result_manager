@@ -1,0 +1,30 @@
+use crate::domain::errors::DomainError;
+use std::fmt;
+
+pub enum Role {
+    Admin,
+    Teacher,
+}
+
+impl TryFrom<&str> for Role {
+    type Error = DomainError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value.to_lowercase().as_str() {
+            "admin" => Ok(Self::Admin),
+            "teacher" => Ok(Self::Teacher),
+            _ => Err(DomainError::InvalidRole),
+        }
+    }
+}
+
+impl fmt::Display for Role {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            Self::Admin => "admin",
+            Self::Teacher => "teacher",
+        };
+
+        write!(f, "{s}")
+    }
+}

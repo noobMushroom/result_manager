@@ -16,4 +16,16 @@ pub enum DomainError {
 
     #[error("admission number already exists")]
     DuplicateAdmissionNo,
+
+    #[error("phone no already exists")]
+    DuplicatePhoneNo,
+
+    #[error("User not found")]
+    UserNotFound,
+
+    #[error("Internal server error")]
+    Internal,
+
+    #[error("Invalid Role")]
+    InvalidRole,
 }
