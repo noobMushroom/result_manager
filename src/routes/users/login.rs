@@ -4,7 +4,7 @@ use sqlx::PgPool;
 use crate::{
     domain::{errors::DomainError, phone::Phone},
     errors::AppError,
-    routes::users::otp::insert_otp,
+    routes::users::otp::{generate_otp, insert_otp},
 };
 
 #[derive(serde::Deserialize)]
@@ -25,12 +25,17 @@ pub async fn teacher_login(
     pool: web::Data<PgPool>,
 ) -> Result<HttpResponse, AppError> {
     let phone = Phone::parse(&user.phone)?;
-    if !check_user(&phone, &pool).await.is_ok() {
-        return Ok(HttpResponse::Ok().finish());
+    let otp = generate_otp();
+    if check_user(&phone, &pool).await.is_err() {
+        return Ok(HttpResponse::Ok().json(serde_json::json!({
+            "message": "If the number is registered, an OTP has been sent"
+        })));
     }
-    insert_otp(&pool, &phone).await?;
+    insert_otp(&pool, &phone, &otp).await?;
 
-    Ok(HttpResponse::Ok().finish())
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "message": "If the number is registered, an OTP has been sent"
+    })))
 }
 
 #[tracing::instrument(name = "checking if the teacher is registered", skip(phone, pool))]

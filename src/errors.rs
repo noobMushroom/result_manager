@@ -35,9 +35,7 @@ impl From<DomainError> for AppError {
             DomainError::DuplicateAdmissionNo | DomainError::DuplicatePhoneNo => {
                 AppError::Conflict(err.to_string())
             }
-            DomainError::Internal | DomainError::HashFailed(_) | DomainError::SqlxError(_) => {
-                AppError::Internal
-            }
+            DomainError::Internal | DomainError::HashFailed(_) => AppError::Internal,
         }
     }
 }

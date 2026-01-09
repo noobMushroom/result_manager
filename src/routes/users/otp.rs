@@ -12,7 +12,7 @@ use uuid::Uuid;
 
 use crate::domain::{errors::DomainError, phone::Phone};
 
-fn generate_otp() -> String {
+pub fn generate_otp() -> String {
     rng().random_range(100000..=999999).to_string()
 }
 
@@ -34,8 +34,7 @@ pub fn verify_otp(otp: &str, stored_hash: &str) -> Result<bool, argon2::password
 }
 
 #[tracing::instrument(name = "saving otp in the database", skip(pool, phone))]
-pub async fn insert_otp(pool: &PgPool, phone: &Phone) -> Result<HttpResponse, DomainError> {
-    let otp = generate_otp();
+pub async fn insert_otp(pool: &PgPool, phone: &Phone, otp: &str) -> Result<(), DomainError> {
     let hashed_otp = hash_otp(&otp)?;
     sqlx::query!(
         r#"
@@ -49,9 +48,12 @@ pub async fn insert_otp(pool: &PgPool, phone: &Phone) -> Result<HttpResponse, Do
         Utc::now()
     )
     .execute(pool)
-    .await?;
-
-    Ok(HttpResponse::Ok().finish())
+    .await
+    .map_err(|e| {
+        tracing::error!(error = ?e, "Inserting otp" );
+        DomainError::Internal
+    })?;
+    Ok(())
 }
 
 #[cfg(test)]

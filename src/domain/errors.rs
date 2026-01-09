@@ -31,7 +31,4 @@ pub enum DomainError {
 
     #[error("failed to hash")]
     HashFailed(#[from] argon2::password_hash::Error),
-
-    #[error("sqlx error")]
-    SqlxError(#[from] sqlx::Error),
 }
