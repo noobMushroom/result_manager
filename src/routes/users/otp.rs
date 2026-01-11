@@ -1,4 +1,4 @@
-use actix_web::HttpResponse;
+use actix_web::{HttpResponse, get, web};
 use argon2::{
     Argon2,
     password_hash::{PasswordHash, PasswordVerifier, rand_core::OsRng},
@@ -10,7 +10,10 @@ use rand::{Rng, rng};
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::domain::{errors::DomainError, phone::Phone};
+use crate::{
+    domain::{errors::DomainError, phone::Phone},
+    errors::AppError,
+};
 
 pub fn generate_otp() -> String {
     rng().random_range(100000..=999999).to_string()
@@ -54,6 +57,21 @@ pub async fn insert_otp(pool: &PgPool, phone: &Phone, otp: &str) -> Result<(), D
         DomainError::Internal
     })?;
     Ok(())
+}
+
+#[derive(serde::Deserialize)]
+struct VerifyOtpBody {
+    #[allow(unused)]
+    otp: String,
+}
+
+#[tracing::instrument(name = "Verifying the otp", skip(pool, body))]
+#[get("/verify")]
+pub async fn verify(
+    _pool: web::Data<PgPool>,
+    _body: web::Json<VerifyOtpBody>,
+) -> Result<HttpResponse, AppError> {
+    todo!()
 }
 
 #[cfg(test)]

@@ -1,8 +1,12 @@
+use crate::add_students::AddStudentdBody;
+use crate::teacher_login::LoginReqBody;
+use chrono::Utc;
 use once_cell::sync::Lazy;
+use reqwest::Response;
 use result_management::configuration::{DatabaseSettings, get_configuration};
+use result_management::startup::{Application, get_connection_pool};
 use result_management::telemetry::{get_subscriber, init_subscriber};
 use sqlx::{Connection, Executor, PgConnection, PgPool};
-use std::net::TcpListener;
 use uuid::Uuid;
 
 static TRACING: Lazy<()> = Lazy::new(|| {
@@ -31,20 +35,81 @@ pub async fn get_grade_id(grade: &str, db_pool: &PgPool) -> Uuid {
     record.id
 }
 
+impl TestApp {
+    pub async fn add_student(&self, body: &AddStudentdBody) -> Response {
+        let client = reqwest::Client::new();
+        client
+            .post(format!("{}/student/add_student", &self.address))
+            .header("content-type", "application/json")
+            .json(body)
+            .send()
+            .await
+            .expect("failed to execute request.")
+    }
+
+    pub async fn get_row_count_students(&self) -> Option<i64> {
+        sqlx::query_scalar!("SELECT COUNT(*) as count FROM students")
+            .fetch_one(&self.db_pool)
+            .await
+            .expect("Failed to get student")
+    }
+
+    pub async fn get_row_count_otp(&self) -> Option<i64> {
+        sqlx::query_scalar!("SELECT COUNT(*) as count FROM otp_requests")
+            .fetch_one(&self.db_pool)
+            .await
+            .expect("Failed to get otp row")
+    }
+
+    pub async fn send_login_req(&self, body: &LoginReqBody) -> Response {
+        let client = reqwest::Client::new();
+        client
+            .post(format!("{}/auth/login", &self.address))
+            .header("content-type", "application/json")
+            .json(body)
+            .send()
+            .await
+            .expect("failed to execute request.")
+    }
+
+    pub async fn add_teacher(&self, phone: &str) {
+        sqlx::query!(
+            r#"
+        INSERT INTO teachers (id, name, phone_no, role, subscribed_at)
+        VALUES($1, $2, $3, $4, $5)
+        "#,
+            Uuid::new_v4(),
+            "some",
+            phone.to_string(),
+            "admin",
+            Utc::now()
+        )
+        .execute(&self.db_pool)
+        .await
+        .expect("failed to execute query");
+    }
+}
+
 pub async fn spawn_app() -> TestApp {
     Lazy::force(&TRACING);
-    let listener = TcpListener::bind("127.0.0.1:0").expect("Failed to bind random port");
-    let port = listener.local_addr().unwrap().port();
-    let address = format!("http://127.0.0.1:{}", port);
-    let mut configuration = get_configuration().expect("Failed to read configuration");
-    configuration.database.database_name = uuid::Uuid::new_v4().to_string();
-    let connection_pool = configure_database(&configuration.database).await;
-    let server = result_management::startup::run(listener, connection_pool.clone())
-        .expect("failed to start server");
-    let _ = actix::spawn(server);
+
+    let configuration = {
+        let mut c = get_configuration().expect("failed to read configuration");
+        c.database.database_name = Uuid::new_v4().to_string();
+        c.application.port = 0;
+        c
+    };
+
+    configure_database(&configuration.database).await;
+
+    let server = Application::build(&configuration)
+        .await
+        .expect("failed to build application");
+    let address = format!("http://127.0.0.1:{}", server.port());
+    let _ = actix::spawn(server.run_until_stopped());
     TestApp {
         address,
-        db_pool: connection_pool,
+        db_pool: get_connection_pool(&configuration.database),
     }
 }
 pub async fn configure_database(config: &DatabaseSettings) -> PgPool {

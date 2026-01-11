@@ -2,26 +2,39 @@ use crate::helpers::{get_grade_id, spawn_app};
 use chrono::NaiveDate;
 use serde_json::Value;
 
+#[derive(serde::Serialize)]
+pub struct AddStudentdBody {
+    pub name: String,
+    pub date_of_birth: String,
+    pub admission_no: u16,
+    pub father_name: String,
+    pub grade: String,
+}
+
+impl AddStudentdBody {
+    fn new(
+        name: &str,
+        date_of_birth: &str,
+        admission_no: u16,
+        father_name: &str,
+        grade: &str,
+    ) -> Self {
+        Self {
+            name: name.to_string(),
+            date_of_birth: date_of_birth.to_string(),
+            admission_no,
+            father_name: father_name.to_string(),
+            grade: grade.to_string(),
+        }
+    }
+}
+
 #[actix::test]
 pub async fn register_student_returns_200_valid_data() {
     let app = spawn_app().await;
     let grade = "LKG";
-    let client = reqwest::Client::new();
-    let body = serde_json::json!({
-        "name": "student",
-        "date_of_birth": "12-12-2025",
-        "admission_no": 12,
-        "father_name": "daddy",
-        "grade": grade
-    })
-    .to_string();
-    let response = client
-        .post(format!("{}/student/add_student", &app.address))
-        .header("content-type", "application/json")
-        .body(body)
-        .send()
-        .await
-        .expect("failed to execute request.");
+    let body = AddStudentdBody::new("student", "12-12-2014", 12, "daddy", grade);
+    let response = app.add_student(&body).await;
 
     let saved = sqlx::query!(
         "SELECT name, date_of_birth, admission_no, father_name, grade_id FROM students"
@@ -35,7 +48,7 @@ pub async fn register_student_returns_200_valid_data() {
     assert_eq!(saved.name, String::from("student"));
     assert_eq!(
         saved.date_of_birth,
-        NaiveDate::parse_from_str("12-12-2025", "%d-%m-%Y").unwrap()
+        NaiveDate::parse_from_str("12-12-2014", "%d-%m-%Y").unwrap()
     );
     assert_eq!(saved.father_name, String::from("daddy"));
     assert_eq!(saved.admission_no, 12);
@@ -47,157 +60,63 @@ pub async fn register_student_returns_200_valid_data() {
 #[actix::test]
 async fn register_fails_if_admission_no_exists() {
     let app = spawn_app().await;
-    let client = reqwest::Client::new();
-    let body = serde_json::json!({
-        "name": "student",
-        "date_of_birth": "12-12-2025",
-        "admission_no": 12,
-        "father_name": "daddy",
-        "grade": "LKG"
-    })
-    .to_string();
+    let body = AddStudentdBody::new("student", "12-12-2025", 12, "daddy", "LKG");
 
-    client
-        .post(format!("{}/student/add_student", &app.address))
-        .header("content-type", "application/json")
-        .body(body.clone())
-        .send()
-        .await
-        .expect("failed to execute request.");
-
-    let response = client
-        .post(format!("{}/student/add_student", &app.address))
-        .header("content-type", "application/json")
-        .body(body)
-        .send()
-        .await
-        .expect("failed to execute request.");
+    app.add_student(&body).await;
+    let response = app.add_student(&body).await;
 
     assert_eq!(response.status().as_u16(), 409);
 
     let resp_body: Value = response.json().await.expect("failed to get json");
     assert_eq!(resp_body["error"], "admission number already exists");
 
-    let count = sqlx::query!("SELECT COUNT(*) as count FROM students")
-        .fetch_one(&app.db_pool)
-        .await
-        .unwrap()
-        .count
-        .unwrap();
+    let count = app.get_row_count_students().await;
 
-    assert_eq!(count, 1);
+    assert_eq!(count, Some(1));
 }
 
 #[actix::test]
 async fn register_fails_for_invalid_grade() {
     let app = spawn_app().await;
-    let client = reqwest::Client::new();
-
-    let body = serde_json::json!({
-        "name": "student",
-        "date_of_birth": "02-12-2023",
-        "admission_no": 99,
-        "father_name": "dad",
-        "grade": "INVALID"
-    })
-    .to_string();
-
-    let response = client
-        .post(format!("{}/student/add_student", &app.address))
-        .header("content-type", "application/json")
-        .body(body)
-        .send()
-        .await
-        .unwrap();
-
+    let body = AddStudentdBody::new("student", "12-12-2023", 99, "daddy", "INVALID");
+    let response = app.add_student(&body).await;
     assert_eq!(response.status().as_u16(), 400);
-
     let resp_body: Value = response.json().await.expect("failed to get json");
-
     assert_eq!(resp_body["error"], "invalid grade");
 
-    let count = sqlx::query!("SELECT COUNT(*) as count FROM students")
-        .fetch_one(&app.db_pool)
-        .await
-        .unwrap()
-        .count
-        .unwrap();
-
-    assert_eq!(count, 0);
+    let count = app.get_row_count_students().await;
+    assert_eq!(count, Some(0));
 }
 
 #[actix::test]
 async fn register_fails_for_invalid_dob_format() {
     let app = spawn_app().await;
-    let client = reqwest::Client::new();
-
-    let body = r#"
-    {
-        "name": "student",
-        "date_of_birth": "2023-12-10",
-        "admission_no": 1,
-        "father_name": "dad",
-        "grade": "LKG"
-    }
-    "#;
-
-    let response = client
-        .post(format!("{}/student/add_student", &app.address))
-        .header("content-type", "application/json")
-        .body(body)
-        .send()
-        .await
-        .unwrap();
+    let body = AddStudentdBody::new("student", "2023-12-10", 1, "daddy", "LKG");
+    let response = app.add_student(&body).await;
 
     assert_eq!(response.status().as_u16(), 400);
 
     let resp_body: Value = response.json().await.expect("failed to get json");
     assert_eq!(resp_body["error"], "invalid date of birth");
 
-    let count = sqlx::query!("SELECT COUNT(*) as count FROM students")
-        .fetch_one(&app.db_pool)
-        .await
-        .unwrap()
-        .count
-        .unwrap();
+    let count = app.get_row_count_students().await;
 
-    assert_eq!(count, 0);
+    assert_eq!(count, Some(0));
 }
 
 #[actix::test]
 async fn register_fails_for_invalid_name() {
     let app = spawn_app().await;
-    let client = reqwest::Client::new();
 
-    let body = r#"
-    {
-        "name": "student ...,,",
-        "date_of_birth": "23-12-2223",
-        "admission_no": 1,
-        "father_name": "dad",
-        "grade": "LKG"
-    }
-    "#;
-
-    let response = client
-        .post(format!("{}/student/add_student", &app.address))
-        .header("content-type", "application/json")
-        .body(body)
-        .send()
-        .await
-        .unwrap();
+    let body = AddStudentdBody::new("student eauua .....", "23-12-2010", 1, "daddy", "LKG");
+    let response = app.add_student(&body).await;
 
     assert_eq!(response.status().as_u16(), 400);
 
     let resp_body: Value = response.json().await.expect("failed to get json");
     assert_eq!(resp_body["error"], "invalid name");
 
-    let count = sqlx::query!("SELECT COUNT(*) as count FROM students")
-        .fetch_one(&app.db_pool)
-        .await
-        .unwrap()
-        .count
-        .unwrap();
+    let count = app.get_row_count_students().await;
 
-    assert_eq!(count, 0);
+    assert_eq!(count, Some(0));
 }

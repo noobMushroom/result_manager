@@ -8,3 +8,8 @@ port = 5432
 username = "postgres"
 password = "password"
 database_name = "users"
+
+[message_api]
+base_url= "localhost"
+device_id= "demo_device"
+api_key= "secret_api_key"
