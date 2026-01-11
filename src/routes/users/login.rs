@@ -4,6 +4,7 @@ use sqlx::PgPool;
 use crate::{
     domain::{errors::DomainError, phone::Phone},
     errors::AppError,
+    message_client::MessageClient,
     routes::users::otp::{generate_otp, insert_otp},
 };
 
@@ -14,7 +15,7 @@ struct UserDetails {
 
 #[tracing::instrument(
     name = "adding a new student",
-    skip(user, pool),
+    skip(user, pool, message_client),
     fields(
         name = %user.phone,
     )
@@ -23,6 +24,7 @@ struct UserDetails {
 pub async fn teacher_login(
     user: web::Json<UserDetails>,
     pool: web::Data<PgPool>,
+    message_client: web::Data<MessageClient>,
 ) -> Result<HttpResponse, AppError> {
     let phone = Phone::parse(&user.phone)?;
     let otp = generate_otp();
@@ -32,6 +34,11 @@ pub async fn teacher_login(
         })));
     }
     insert_otp(&pool, &phone, &otp).await?;
+
+    message_client.send_otp(otp, &phone).await.map_err(|e| {
+        tracing::error!(error=?e, "error while sending otp");
+        DomainError::Internal
+    })?;
 
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "message": "If the number is registered, an OTP has been sent"

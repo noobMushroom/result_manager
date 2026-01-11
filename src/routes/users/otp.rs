@@ -7,6 +7,7 @@ use argon2::{
 use argon2::password_hash::{PasswordHasher, SaltString};
 use chrono::Utc;
 use rand::{Rng, rng};
+use secrecy::{ExposeSecret, SecretString};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -15,29 +16,37 @@ use crate::{
     errors::AppError,
 };
 
-pub fn generate_otp() -> String {
-    rng().random_range(100000..=999999).to_string()
+pub fn generate_otp() -> SecretString {
+    let otp = rng().random_range(100000..=999999).to_string();
+    SecretString::new(otp.into())
 }
 
-fn hash_otp(otp: &str) -> Result<String, argon2::password_hash::Error> {
+fn hash_otp(otp: &SecretString) -> Result<String, argon2::password_hash::Error> {
     let salt = SaltString::generate(&mut OsRng);
     let argon2 = Argon2::default();
 
-    let hash = argon2.hash_password(otp.as_bytes(), &salt)?;
+    let hash = argon2.hash_password(otp.expose_secret().as_bytes(), &salt)?;
 
     Ok(hash.to_string())
 }
 
-pub fn verify_otp(otp: &str, stored_hash: &str) -> Result<bool, argon2::password_hash::Error> {
+pub fn verify_otp(
+    otp: &SecretString,
+    stored_hash: &str,
+) -> Result<bool, argon2::password_hash::Error> {
     let parsed_hash = PasswordHash::new(stored_hash)?;
 
     Ok(Argon2::default()
-        .verify_password(otp.as_bytes(), &parsed_hash)
+        .verify_password(otp.expose_secret().as_bytes(), &parsed_hash)
         .is_ok())
 }
 
 #[tracing::instrument(name = "saving otp in the database", skip(pool, phone))]
-pub async fn insert_otp(pool: &PgPool, phone: &Phone, otp: &str) -> Result<(), DomainError> {
+pub async fn insert_otp(
+    pool: &PgPool,
+    phone: &Phone,
+    otp: &SecretString,
+) -> Result<(), DomainError> {
     let hashed_otp = hash_otp(&otp)?;
     sqlx::query!(
         r#"
@@ -83,7 +92,7 @@ mod tests {
         let otp1 = generate_otp();
         let otp2 = generate_otp();
 
-        assert_ne!(otp1, otp2)
+        assert_ne!(otp1.expose_secret(), otp2.expose_secret())
     }
 
     #[test]
@@ -96,8 +105,8 @@ mod tests {
 
     #[test]
     fn test_random_hash_should_produce_wrong() {
-        let hash = hash_otp("123457").unwrap();
-        let decoded = verify_otp("1222233", &hash).unwrap();
+        let hash = hash_otp(&SecretString::new("123457".into())).unwrap();
+        let decoded = verify_otp(&SecretString::new("12345".into()), &hash).unwrap();
         assert!(!decoded)
     }
 }

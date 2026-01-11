@@ -1,4 +1,5 @@
 use crate::configuration::{DatabaseSettings, Settings};
+use crate::message_client::MessageClient;
 use crate::routes::health_check::health;
 use crate::routes::students::register::register_student;
 use crate::routes::users::login::teacher_login;
@@ -16,15 +17,22 @@ pub struct Application {
 }
 
 impl Application {
-    pub async fn build(configuration: &Settings) -> Result<Self, std::io::Error> {
+    pub async fn build(configuration: Settings) -> Result<Self, Box<dyn std::error::Error>> {
         let connection_pool = get_connection_pool(&configuration.database);
         let address = format!(
             "{}:{}",
             configuration.application.host, configuration.application.port
         );
+
+        let message_client = MessageClient::new(
+            configuration.message_client.timeout(),
+            configuration.message_client.base_url,
+            configuration.message_client.api_key,
+            configuration.message_client.device_id,
+        )?;
         let listener = TcpListener::bind(address)?;
         let port = listener.local_addr().unwrap().port();
-        let server = run(listener, connection_pool)?;
+        let server = run(listener, connection_pool, message_client)?;
 
         Ok(Self { port, server })
     }
@@ -43,8 +51,13 @@ pub fn get_connection_pool(configuration: &DatabaseSettings) -> PgPool {
         .acquire_timeout(std::time::Duration::from_secs(10))
         .connect_lazy_with(configuration.with_db())
 }
-pub fn run(listen: TcpListener, db_pool: PgPool) -> Result<Server, std::io::Error> {
+pub fn run(
+    listen: TcpListener,
+    db_pool: PgPool,
+    message_client: MessageClient,
+) -> Result<Server, std::io::Error> {
     let connection = web::Data::new(db_pool);
+    let message_client = web::Data::new(message_client);
     let server = HttpServer::new(move || {
         App::new()
             .wrap(TracingLogger::default())
@@ -56,6 +69,7 @@ pub fn run(listen: TcpListener, db_pool: PgPool) -> Result<Server, std::io::Erro
             .service(web::scope("/student").service(register_student))
             .service(health)
             .app_data(connection.clone())
+            .app_data(message_client.clone())
     })
     .listen(listen)?
     .run();

@@ -3,20 +3,35 @@ use serde::Deserialize;
 use serde_aux::field_attributes::deserialize_number_from_string;
 use sqlx::postgres::PgConnectOptions;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Settings {
     pub database: DatabaseSettings,
     pub application: ApplicationSettings,
+    pub message_client: MessageClientSettings,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
+pub struct MessageClientSettings {
+    pub base_url: String,
+    pub api_key: SecretString,
+    pub device_id: SecretString,
+    pub timeout_milliseconds: u64,
+}
+
+impl MessageClientSettings {
+    pub fn timeout(&self) -> std::time::Duration {
+        std::time::Duration::from_millis(self.timeout_milliseconds)
+    }
+}
+
+#[derive(Debug, Deserialize, Clone)]
 pub struct ApplicationSettings {
     #[serde(deserialize_with = "deserialize_number_from_string")]
     pub port: u16,
     pub host: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct DatabaseSettings {
     pub username: String,
     pub password: SecretString,
@@ -67,7 +82,8 @@ pub fn get_configuration() -> Result<Settings, config::ConfigError> {
             )
             .required(true),
         );
-    settings.build()?.try_deserialize::<Settings>()
+    let settings = settings.build()?.try_deserialize::<Settings>();
+    settings
 }
 
 pub enum Environment {

@@ -1,12 +1,13 @@
 use reqwest::Client;
 use secrecy::{ExposeSecret, SecretString};
 
-use crate::domain::{errors::DomainError, phone::Phone};
+use crate::domain::phone::Phone;
 
 pub struct MessageClient {
     http_client: Client,
     base_url: String,
     auth_id: SecretString,
+    device_id: SecretString,
 }
 
 #[derive(serde::Serialize)]
@@ -20,16 +21,15 @@ impl MessageClient {
         timeout: std::time::Duration,
         base_url: String,
         auth_id: SecretString,
-    ) -> Result<Self, DomainError> {
-        let client = Client::builder().timeout(timeout).build().map_err(|e| {
-            tracing::error!(error=?e, "failed to create client");
-            DomainError::Internal
-        })?;
+        device_id: SecretString,
+    ) -> Result<Self, reqwest::Error> {
+        let client = Client::builder().timeout(timeout).build()?;
 
         Ok(Self {
             http_client: client,
             base_url,
             auth_id,
+            device_id,
         })
     }
 
@@ -38,15 +38,21 @@ impl MessageClient {
             "Your login otp for St James Result is {}",
             otp.expose_secret()
         );
+
+        let url = format!(
+            "{}/{}/send-sms",
+            self.base_url,
+            self.device_id.expose_secret()
+        );
         let request_body = SendMessageRequest {
             recipients: vec![phone.as_ref().to_string()],
             message,
         };
 
         self.http_client
-            .post(&self.base_url)
+            .post(&url)
+            .header("X-api-Key", self.auth_id.expose_secret())
             .json(&request_body)
-            .bearer_auth(self.auth_id.expose_secret())
             .send()
             .await?
             .error_for_status()?;
@@ -85,6 +91,7 @@ mod tests {
         MessageClient::new(
             std::time::Duration::from_millis(300),
             base_url,
+            SecretString::new("2144222222".into()),
             SecretString::new("2144222222".into()),
         )
         .unwrap()
