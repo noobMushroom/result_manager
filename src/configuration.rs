@@ -82,8 +82,7 @@ pub fn get_configuration() -> Result<Settings, config::ConfigError> {
             )
             .required(true),
         );
-    let settings = settings.build()?.try_deserialize::<Settings>();
-    settings
+    settings.build()?.try_deserialize::<Settings>()
 }
 
 pub enum Environment {

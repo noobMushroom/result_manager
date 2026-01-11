@@ -29,6 +29,6 @@ pub enum DomainError {
     #[error("Invalid Role")]
     InvalidRole,
 
-    #[error("failed to hash")]
-    HashFailed(#[from] argon2::password_hash::Error),
+    #[error("Unauthorised")]
+    Unauthorised,
 }

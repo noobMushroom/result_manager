@@ -15,6 +15,9 @@ pub enum AppError {
 
     #[error("internal server error")]
     Internal,
+
+    #[error("Unouthorised")]
+    Unauthorised,
 }
 
 #[derive(serde::Serialize)]
@@ -35,7 +38,8 @@ impl From<DomainError> for AppError {
             DomainError::DuplicateAdmissionNo | DomainError::DuplicatePhoneNo => {
                 AppError::Conflict(err.to_string())
             }
-            DomainError::Internal | DomainError::HashFailed(_) => AppError::Internal,
+            DomainError::Internal => AppError::Internal,
+            DomainError::Unauthorised => AppError::Unauthorised,
         }
     }
 }
@@ -53,6 +57,13 @@ impl ResponseError for AppError {
                 .json(ErrorResponse {
                     error: "Internal server error",
                 }),
+            AppError::Unauthorised => {
+                builder
+                    .insert_header(ContentType::json())
+                    .json(ErrorResponse {
+                        error: "Unauthorised user",
+                    })
+            }
         }
     }
 
@@ -61,6 +72,7 @@ impl ResponseError for AppError {
             AppError::Internal => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::Conflict(_) => StatusCode::CONFLICT,
             AppError::BadRequest(_) => StatusCode::BAD_REQUEST,
+            AppError::Unauthorised => StatusCode::UNAUTHORIZED,
         }
     }
 }

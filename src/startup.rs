@@ -3,6 +3,7 @@ use crate::message_client::MessageClient;
 use crate::routes::health_check::health;
 use crate::routes::students::register::register_student;
 use crate::routes::users::login::teacher_login;
+use crate::routes::users::otp::verify_user_otp;
 use crate::routes::users::register::add_teacher;
 use actix_web::dev::Server;
 use actix_web::{App, HttpServer, web};
@@ -64,7 +65,8 @@ pub fn run(
             .service(
                 web::scope("/auth")
                     .service(teacher_login)
-                    .service(add_teacher),
+                    .service(add_teacher)
+                    .service(verify_user_otp),
             )
             .service(web::scope("/student").service(register_student))
             .service(health)

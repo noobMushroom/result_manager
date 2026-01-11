@@ -1,4 +1,5 @@
 use crate::add_students::AddStudentdBody;
+use crate::otp::VerifyOtpBody;
 use crate::teacher_login::LoginReqBody;
 use chrono::Utc;
 use once_cell::sync::Lazy;
@@ -6,6 +7,7 @@ use reqwest::Response;
 use result_management::configuration::{DatabaseSettings, get_configuration};
 use result_management::startup::{Application, get_connection_pool};
 use result_management::telemetry::{get_subscriber, init_subscriber};
+use serde_json::Value;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use uuid::Uuid;
 use wiremock::MockServer;
@@ -74,6 +76,17 @@ impl TestApp {
             .expect("failed to execute request.")
     }
 
+    pub async fn send_verify_otp_req(&self, body: &VerifyOtpBody) -> Response {
+        let client = reqwest::Client::new();
+        client
+            .post(format!("{}/auth/verify", &self.address))
+            .header("content-type", "application/json")
+            .json(body)
+            .send()
+            .await
+            .expect("failed to execute request.")
+    }
+
     pub async fn add_teacher(&self, phone: &str) {
         sqlx::query!(
             r#"
@@ -135,4 +148,13 @@ pub async fn configure_database(config: &DatabaseSettings) -> PgPool {
         .expect("failed to run migrations");
 
     connection_pool
+}
+
+pub fn extract_otp(body: &str) -> Option<String> {
+    let v: Value = serde_json::from_str(body).ok()?;
+    let message = v.get("message")?.as_str()?;
+    message
+        .split_whitespace()
+        .find(|word| word.chars().all(|c| c.is_ascii_digit()))
+        .map(|s| s.to_string())
 }
