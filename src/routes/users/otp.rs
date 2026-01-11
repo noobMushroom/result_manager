@@ -65,7 +65,7 @@ struct VerifyOtpBody {
     otp: String,
 }
 
-#[tracing::instrument(name = "Verifying the otp", skip(pool, body))]
+// #[tracing::instrument(name = "Verifying the otp", skip(pool, body))]
 #[get("/verify")]
 pub async fn verify(
     _pool: web::Data<PgPool>,
