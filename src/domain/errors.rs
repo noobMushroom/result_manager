@@ -31,4 +31,7 @@ pub enum DomainError {
 
     #[error("Unauthorised")]
     Unauthorised,
+
+    #[error("Forbidden")]
+    Forbidden,
 }

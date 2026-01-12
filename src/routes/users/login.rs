@@ -5,12 +5,15 @@ use crate::{
     domain::{errors::DomainError, phone::Phone},
     errors::AppError,
     message_client::MessageClient,
-    routes::users::otp::{generate_otp, insert_otp},
+    routes::users::{
+        moderate::ensure_not_banned,
+        otp::{generate_otp, insert_otp},
+    },
 };
 
 #[derive(serde::Deserialize)]
-struct UserDetails {
-    phone: String,
+pub struct UserDetails {
+    pub phone: String,
 }
 
 #[tracing::instrument(
@@ -27,14 +30,14 @@ pub async fn teacher_login(
     message_client: web::Data<MessageClient>,
 ) -> Result<HttpResponse, AppError> {
     let phone = Phone::parse(&user.phone)?;
-    let otp = generate_otp();
     if check_user(&phone, &pool).await.is_err() {
         return Ok(HttpResponse::Ok().json(serde_json::json!({
             "message": "If the number is registered, an OTP has been sent"
         })));
     }
+    ensure_not_banned(&pool, &phone).await?;
+    let otp = generate_otp();
     insert_otp(&pool, &phone, &otp).await?;
-
     message_client.send_otp(otp, &phone).await.map_err(|e| {
         tracing::error!(error=?e, "error while sending otp");
         DomainError::Internal

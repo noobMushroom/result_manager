@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT banned_until from user_bans WHERE phone_number=$1 AND banned_until > NOW() \n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "banned_until",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "89bda45fdac092a65bc6531ddb494ceeaad071681e1bef79f41fc9f1c830d40a"
+}

@@ -18,6 +18,9 @@ pub enum AppError {
 
     #[error("Unouthorised")]
     Unauthorised,
+
+    #[error("Forbidden")]
+    Forbidden,
 }
 
 #[derive(serde::Serialize)]
@@ -40,6 +43,7 @@ impl From<DomainError> for AppError {
             }
             DomainError::Internal => AppError::Internal,
             DomainError::Unauthorised => AppError::Unauthorised,
+            DomainError::Forbidden => AppError::Forbidden,
         }
     }
 }
@@ -64,6 +68,11 @@ impl ResponseError for AppError {
                         error: "Unauthorised user",
                     })
             }
+            AppError::Forbidden => builder
+                .insert_header(ContentType::json())
+                .json(ErrorResponse {
+                    error: "You are banned from the service",
+                }),
         }
     }
 
@@ -73,6 +82,7 @@ impl ResponseError for AppError {
             AppError::Conflict(_) => StatusCode::CONFLICT,
             AppError::BadRequest(_) => StatusCode::BAD_REQUEST,
             AppError::Unauthorised => StatusCode::UNAUTHORIZED,
+            AppError::Forbidden => StatusCode::FORBIDDEN,
         }
     }
 }

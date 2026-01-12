@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO otp_requests (id, phone_number, otp_hash, expires_at,attempts, created_at)\n            VALUES($1, $2, $3, $4, $5, $6)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Timestamptz",
+        "Int4",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "18f1eed199cf9775d2226f9ded9b4ead60e69aad608688e9b623cf24d6af10f2"
+}

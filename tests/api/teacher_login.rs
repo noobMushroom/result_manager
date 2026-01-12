@@ -1,4 +1,5 @@
 use crate::helpers::spawn_app;
+use chrono::{Duration, Utc};
 use wiremock::{Mock, ResponseTemplate, matchers::method};
 
 #[derive(serde::Serialize)]
@@ -51,5 +52,29 @@ pub async fn doesnt_add_otp_for_invalid() {
     let response = app.send_login_req(&body).await;
     let count = app.get_row_count_otp().await;
     assert_eq!(200, response.status().as_u16());
+    assert_eq!(count, Some(0))
+}
+
+#[actix::test]
+pub async fn return_forbidden_if_user_for_banned() {
+    let app = spawn_app().await;
+    let phone = "1234567892";
+    sqlx::query!(
+        r#"
+            INSERT INTO user_bans (phone_number, banned_until, reason)
+            VALUES($1, $2, $3)
+        "#,
+        phone,
+        Utc::now() + Duration::minutes(5),
+        "Too many otp attempts"
+    )
+    .execute(&app.db_pool)
+    .await
+    .unwrap();
+    app.add_teacher(&phone).await;
+    let body = LoginReqBody::new(phone);
+    let response = app.send_login_req(&body).await;
+    let count = app.get_row_count_otp().await;
+    assert_eq!(403, response.status().as_u16());
     assert_eq!(count, Some(0))
 }

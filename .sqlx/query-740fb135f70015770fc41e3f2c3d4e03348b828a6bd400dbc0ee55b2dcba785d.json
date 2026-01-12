@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT id, otp_hash, expires_at, attempts\n        FROM otp_requests\n        WHERE phone_number = $1\n          AND expires_at > NOW()\n        ORDER BY created_at DESC\n        LIMIT 1\n        ",
+  "query": "\n        SELECT id, otp_hash, expires_at, attempts, created_at\n        FROM otp_requests\n        WHERE phone_number = $1\n          AND expires_at > NOW()\n        ORDER BY created_at DESC\n        LIMIT 1\n        ",
   "describe": {
     "columns": [
       {
@@ -22,6 +22,11 @@
         "ordinal": 3,
         "name": "attempts",
         "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at",
+        "type_info": "Timestamptz"
       }
     ],
     "parameters": {
@@ -33,8 +38,9 @@
       false,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "48ee89dd8304da432b38bd65f7dd7faeaac7f90e80d63c9b06a62bd038735e73"
+  "hash": "740fb135f70015770fc41e3f2c3d4e03348b828a6bd400dbc0ee55b2dcba785d"
 }

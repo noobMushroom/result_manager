@@ -14,22 +14,28 @@ use uuid::Uuid;
 use crate::{
     domain::{errors::DomainError, phone::Phone},
     errors::AppError,
+    routes::users::moderate::ensure_not_banned,
 };
 
+// Generates the otp
 pub fn generate_otp() -> SecretString {
     let otp = rng().random_range(100000..=999999).to_string();
     SecretString::new(otp.into())
 }
 
-fn hash_otp(otp: &SecretString) -> Result<String, argon2::password_hash::Error> {
+// Creates the hash from otp
+fn hash_otp(otp: &SecretString) -> Result<SecretString, argon2::password_hash::Error> {
     let salt = SaltString::generate(&mut OsRng);
     let argon2 = Argon2::default();
 
-    let hash = argon2.hash_password(otp.expose_secret().as_bytes(), &salt)?;
+    let hash = argon2
+        .hash_password(otp.expose_secret().as_bytes(), &salt)?
+        .to_string();
 
-    Ok(hash.to_string())
+    Ok(SecretString::new(hash.into()))
 }
 
+// This funciton verifies otp by the hash
 pub fn verify_otp(
     otp: &SecretString,
     stored_hash: &SecretString,
@@ -39,6 +45,47 @@ pub fn verify_otp(
     Ok(Argon2::default()
         .verify_password(otp.expose_secret().as_bytes(), &parsed_hash)
         .is_ok())
+}
+
+#[derive(serde::Deserialize)]
+struct VerifyOtpBody {
+    otp: String,
+    phone: String,
+}
+
+pub struct OtpRequest {
+    pub id: Uuid,
+    pub otp_hash: SecretString,
+    pub expires_at: DateTime<Utc>,
+    pub attempts: i32,
+    pub created_at: DateTime<Utc>,
+}
+
+// This funciton verifies the otp by /verify endpoint
+#[tracing::instrument(name = "Verifying the otp", skip(pool, body))]
+#[post("/verify")]
+pub async fn verify_user_otp(
+    pool: web::Data<PgPool>,
+    body: web::Json<VerifyOtpBody>,
+) -> Result<HttpResponse, AppError> {
+    let VerifyOtpBody { phone, otp } = body.into_inner();
+    let phone = Phone::parse(&phone)?;
+    ensure_not_banned(&pool, &phone).await?;
+    let otp_hash = get_otp_hash(&phone, &pool).await?;
+    let otp = SecretString::new(otp.into());
+
+    if let Some(hash) = otp_hash {
+        if !verify_otp(&otp, &hash.otp_hash).map_err(|e| {
+            tracing::error!(error=?e, "failed to verify");
+            DomainError::Internal
+        })? {
+            return Err(DomainError::Unauthorised)?;
+        }
+    } else {
+        return Err(DomainError::Unauthorised)?;
+    }
+
+    Ok(HttpResponse::Ok().finish())
 }
 
 #[tracing::instrument(name = "saving otp in the database", skip(pool, phone))]
@@ -51,16 +98,39 @@ pub async fn insert_otp(
         tracing::error!(error=?e, "failed to vrify");
         DomainError::Internal
     })?;
+
+    if let Some(hash) = get_otp_hash(phone, pool).await? {
+        if hash.attempts > 3 {
+            // Ban the user here
+            todo!()
+        } else {
+            add_otp_to_table(pool, phone, hashed_otp, hash.attempts + 1).await?
+        }
+    } else {
+        add_otp_to_table(pool, phone, hashed_otp, 0).await?
+    }
+
+    Ok(())
+}
+
+#[tracing::instrument(name = "adding otp in the database", skip(pool, phone))]
+async fn add_otp_to_table(
+    pool: &PgPool,
+    phone: &Phone,
+    hash: SecretString,
+    attempts: i32,
+) -> Result<(), DomainError> {
     sqlx::query!(
         r#"
-            INSERT INTO otp_requests (id, phone_number, otp_hash, expires_at, created_at)
-            VALUES($1, $2, $3, $4, $5)
+            INSERT INTO otp_requests (id, phone_number, otp_hash, expires_at,attempts, created_at)
+            VALUES($1, $2, $3, $4, $5, $6)
         "#,
         Uuid::new_v4(),
         phone.as_ref(),
-        hashed_otp,
+        hash.expose_secret(),
         Utc::now() + chrono::Duration::minutes(5),
-        Utc::now()
+        attempts,
+        Utc::now(),
     )
     .execute(pool)
     .await
@@ -71,47 +141,12 @@ pub async fn insert_otp(
     Ok(())
 }
 
-#[derive(serde::Deserialize)]
-struct VerifyOtpBody {
-    #[allow(unused)]
-    otp: String,
-    phone: String,
-}
-
-pub struct OtpRequest {
-    pub id: Uuid,
-    pub otp_hash: SecretString,
-    pub expires_at: DateTime<Utc>,
-    pub attempts: i32,
-}
-
-#[tracing::instrument(name = "Verifying the otp", skip(pool, body))]
-#[post("/verify")]
-pub async fn verify_user_otp(
-    pool: web::Data<PgPool>,
-    body: web::Json<VerifyOtpBody>,
-) -> Result<HttpResponse, AppError> {
-    let VerifyOtpBody { phone, otp } = body.into_inner();
-    let phone = Phone::parse(&phone)?;
-    let otp_hash = get_otp_hash(&phone, &pool).await?.unwrap();
-    let otp = SecretString::new(otp.into());
-
-    if !verify_otp(&otp, &otp_hash.otp_hash).map_err(|e| {
-        tracing::error!(error=?e, "failed to vrify");
-        DomainError::Internal
-    })? {
-        return Err(DomainError::Unauthorised)?;
-    }
-
-    Ok(HttpResponse::Ok().finish())
-}
-
 #[tracing::instrument(name = "Getting the otp hash", skip(pool, phone))]
 pub async fn get_otp_hash(phone: &Phone, pool: &PgPool) -> Result<Option<OtpRequest>, DomainError> {
     let otp = sqlx::query_as!(
         OtpRequest,
         r#"
-        SELECT id, otp_hash, expires_at, attempts
+        SELECT id, otp_hash, expires_at, attempts, created_at
         FROM otp_requests
         WHERE phone_number = $1
           AND expires_at > NOW()
@@ -146,18 +181,14 @@ mod tests {
     fn test_generate_decode_hash() {
         let otp = generate_otp();
         let hash = hash_otp(&otp).unwrap();
-        let decoded_otp = verify_otp(&otp, &SecretString::new(hash.into())).unwrap();
+        let decoded_otp = verify_otp(&otp, &hash).unwrap();
         assert!(decoded_otp)
     }
 
     #[test]
     fn test_random_hash_should_produce_wrong() {
         let hash = hash_otp(&SecretString::new("123457".into())).unwrap();
-        let decoded = verify_otp(
-            &SecretString::new("12345".into()),
-            &SecretString::new(hash.into()),
-        )
-        .unwrap();
+        let decoded = verify_otp(&SecretString::new("12345".into()), &hash).unwrap();
         assert!(!decoded)
     }
 }
