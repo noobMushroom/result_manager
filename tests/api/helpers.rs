@@ -1,7 +1,7 @@
 use crate::add_students::AddStudentdBody;
 use crate::otp::VerifyOtpBody;
 use crate::teacher_login::LoginReqBody;
-use chrono::Utc;
+use chrono::{Duration, Utc};
 use once_cell::sync::Lazy;
 use reqwest::Response;
 use result_management::configuration::{DatabaseSettings, get_configuration};
@@ -102,6 +102,57 @@ impl TestApp {
         .execute(&self.db_pool)
         .await
         .expect("failed to execute query");
+    }
+
+    pub async fn rewind_latest_otp_created_at(&self, phone: &str) {
+        let duration = Utc::now() - Duration::seconds(32);
+        sqlx::query!(
+            r#"
+        UPDATE otp_requests
+        SET created_at = $2
+        WHERE id = (
+            SELECT id
+            FROM otp_requests
+            WHERE phone_number = $1
+            ORDER BY created_at DESC, id DESC
+            LIMIT 1
+        )
+        "#,
+            phone,
+            duration
+        )
+        .execute(&self.db_pool)
+        .await
+        .expect("failed to change created at time");
+    }
+
+    pub async fn get_otp_attempts(&self, phone: &str) -> i32 {
+        let otp = sqlx::query!(
+            r#"
+        SELECT attempts
+        FROM otp_requests
+        WHERE phone_number = $1
+          AND expires_at > NOW()
+        ORDER BY created_at DESC
+        LIMIT 1
+        "#,
+            phone
+        )
+        .fetch_one(&self.db_pool)
+        .await
+        .expect("failed to get otp");
+        otp.attempts
+    }
+
+    pub async fn request_otp_and_extract(&self, phone: &str) -> String {
+        let body = LoginReqBody::new(phone);
+        self.send_login_req(&body).await;
+
+        let requests = self.message_server.received_requests().await.unwrap();
+        let last = requests.last().expect("no OTP request found");
+
+        let raw = String::from_utf8(last.body.clone()).unwrap();
+        extract_otp(&raw).expect("OTP not found")
     }
 }
 

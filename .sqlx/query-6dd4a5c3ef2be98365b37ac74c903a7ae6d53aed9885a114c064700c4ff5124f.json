@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT attempts\n        FROM otp_requests\n        WHERE phone_number = $1\n          AND expires_at > NOW()\n        ORDER BY created_at DESC\n        LIMIT 1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "attempts",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "6dd4a5c3ef2be98365b37ac74c903a7ae6d53aed9885a114c064700c4ff5124f"
+}

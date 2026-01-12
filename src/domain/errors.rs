@@ -34,4 +34,7 @@ pub enum DomainError {
 
     #[error("Forbidden")]
     Forbidden,
+
+    #[error("Too Many Requests {0}")]
+    TooManyRequest(String),
 }

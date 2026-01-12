@@ -4,7 +4,7 @@ CREATE TABLE otp_requests (
     phone_number TEXT NOT NULL,
     otp_hash TEXT NOT NULL,
     expires_at TIMESTAMPTZ NOT NULL,
-    attempts INT NOT NULL DEFAULT 0,
+    attempts INT NOT NULL ,
     created_at TIMESTAMPTZ NOT NULL
 );
 

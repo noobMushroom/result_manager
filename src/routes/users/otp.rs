@@ -5,7 +5,7 @@ use argon2::{
 };
 
 use argon2::password_hash::{PasswordHasher, SaltString};
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Duration, Utc};
 use rand::{Rng, rng};
 use secrecy::{ExposeSecret, SecretString};
 use sqlx::PgPool;
@@ -45,6 +45,10 @@ pub fn verify_otp(
     Ok(Argon2::default()
         .verify_password(otp.expose_secret().as_bytes(), &parsed_hash)
         .is_ok())
+}
+
+fn can_resend(created_at: &DateTime<Utc>) -> bool {
+    *created_at + Duration::seconds(30) <= Utc::now()
 }
 
 #[derive(serde::Deserialize)]
@@ -100,16 +104,42 @@ pub async fn insert_otp(
     })?;
 
     if let Some(hash) = get_otp_hash(phone, pool).await? {
-        if hash.attempts > 3 {
-            // Ban the user here
-            todo!()
+        if hash.attempts >= 3 {
+            add_user_to_ban_table(pool, phone).await?;
+            return Err(DomainError::Forbidden);
         } else {
-            add_otp_to_table(pool, phone, hashed_otp, hash.attempts + 1).await?
+            if can_resend(&hash.created_at) {
+                add_otp_to_table(pool, phone, hashed_otp, hash.attempts + 1).await?
+            } else {
+                return Err(DomainError::TooManyRequest(
+                    "You tried to many times take a break".to_string(),
+                ));
+            }
         }
     } else {
-        add_otp_to_table(pool, phone, hashed_otp, 0).await?
+        add_otp_to_table(pool, phone, hashed_otp, 1).await?
     }
 
+    Ok(())
+}
+
+#[tracing::instrument(name = "adding user to cooldown table", skip(pool, phone))]
+async fn add_user_to_ban_table(pool: &PgPool, phone: &Phone) -> Result<(), DomainError> {
+    sqlx::query!(
+        r#"
+            INSERT INTO user_bans (phone_number, banned_until, reason)
+            VALUES($1, $2, $3)
+        "#,
+        phone.as_ref(),
+        Utc::now() + Duration::minutes(20),
+        "Too many otp attempts"
+    )
+    .execute(pool)
+    .await
+    .map_err(|e| {
+        tracing::error!(error = ?e, "Inserting User for cooldown" );
+        DomainError::Internal
+    })?;
     Ok(())
 }
 

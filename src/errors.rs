@@ -21,6 +21,9 @@ pub enum AppError {
 
     #[error("Forbidden")]
     Forbidden,
+
+    #[error("Too many Requests")]
+    TooManyRequests(String),
 }
 
 #[derive(serde::Serialize)]
@@ -44,6 +47,7 @@ impl From<DomainError> for AppError {
             DomainError::Internal => AppError::Internal,
             DomainError::Unauthorised => AppError::Unauthorised,
             DomainError::Forbidden => AppError::Forbidden,
+            DomainError::TooManyRequest(err) => AppError::TooManyRequests(err.to_string()),
         }
     }
 }
@@ -73,6 +77,10 @@ impl ResponseError for AppError {
                 .json(ErrorResponse {
                     error: "You are banned from the service",
                 }),
+
+            AppError::TooManyRequests(msg) => builder
+                .insert_header(ContentType::json())
+                .json(ErrorResponse { error: msg }),
         }
     }
 
@@ -83,6 +91,7 @@ impl ResponseError for AppError {
             AppError::BadRequest(_) => StatusCode::BAD_REQUEST,
             AppError::Unauthorised => StatusCode::UNAUTHORIZED,
             AppError::Forbidden => StatusCode::FORBIDDEN,
+            AppError::TooManyRequests(_) => StatusCode::TOO_MANY_REQUESTS,
         }
     }
 }
