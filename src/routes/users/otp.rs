@@ -12,7 +12,8 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::{
-    domain::{errors::DomainError, phone::Phone},
+    auth::jwt::generate_jwt,
+    domain::{errors::DomainError, phone::Phone, roles::Role},
     errors::AppError,
     routes::users::moderate::ensure_not_banned,
 };
@@ -65,12 +66,18 @@ pub struct OtpRequest {
     pub created_at: DateTime<Utc>,
 }
 
+pub struct User {
+    pub id: Uuid,
+    pub role: String,
+}
+
 // This funciton verifies the otp by /verify endpoint
 #[tracing::instrument(name = "Verifying the otp", skip(pool, body))]
 #[post("/verify")]
 pub async fn verify_user_otp(
     pool: web::Data<PgPool>,
     body: web::Json<VerifyOtpBody>,
+    secret: web::Data<SecretString>,
 ) -> Result<HttpResponse, AppError> {
     let VerifyOtpBody { phone, otp } = body.into_inner();
     let phone = Phone::parse(&phone)?;
@@ -78,18 +85,25 @@ pub async fn verify_user_otp(
     let otp_hash = get_otp_hash(&phone, &pool).await?;
     let otp = SecretString::new(otp.into());
 
-    if let Some(hash) = otp_hash {
-        if !verify_otp(&otp, &hash.otp_hash).map_err(|e| {
-            tracing::error!(error=?e, "failed to verify");
-            DomainError::Internal
-        })? {
-            return Err(DomainError::Unauthorised)?;
-        }
-    } else {
+    let hash = otp_hash.ok_or(DomainError::Unauthorised)?;
+
+    if !verify_otp(&otp, &hash.otp_hash).map_err(|e| {
+        tracing::error!(error=?e, "failed to verify");
+        DomainError::Internal
+    })? {
         return Err(DomainError::Unauthorised)?;
     }
 
-    Ok(HttpResponse::Ok().finish())
+    let user = get_user(&phone, &pool).await?;
+    let role = Role::try_from(user.role)?;
+
+    let jwt_token =
+        generate_jwt(user.id, role, &secret.into_inner()).map_err(|_| DomainError::Internal)?;
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "token": jwt_token,
+        "token_type": "Bearer"
+    })))
 }
 
 #[tracing::instrument(name = "saving otp in the database", skip(pool, phone))]
@@ -107,14 +121,12 @@ pub async fn insert_otp(
         if hash.attempts >= 3 {
             add_user_to_ban_table(pool, phone).await?;
             return Err(DomainError::Forbidden);
+        } else if can_resend(&hash.created_at) {
+            add_otp_to_table(pool, phone, hashed_otp, hash.attempts + 1).await?
         } else {
-            if can_resend(&hash.created_at) {
-                add_otp_to_table(pool, phone, hashed_otp, hash.attempts + 1).await?
-            } else {
-                return Err(DomainError::TooManyRequest(
-                    "You tried to many times take a break".to_string(),
-                ));
-            }
+            return Err(DomainError::TooManyRequest(
+                "You tried to many times take a break".to_string(),
+            ));
         }
     } else {
         add_otp_to_table(pool, phone, hashed_otp, 1).await?
@@ -193,6 +205,28 @@ pub async fn get_otp_hash(phone: &Phone, pool: &PgPool) -> Result<Option<OtpRequ
     })?;
 
     Ok(otp)
+}
+
+#[tracing::instrument(name = "Getting user from db", skip(pool, phone))]
+pub async fn get_user(phone: &Phone, pool: &PgPool) -> Result<User, DomainError> {
+    let user = sqlx::query_as!(
+        User,
+        r#"
+        SELECT id, role 
+        FROM teachers
+        WHERE phone_no = $1
+        LIMIT 1
+        "#,
+        phone.as_ref()
+    )
+    .fetch_one(pool)
+    .await
+    .map_err(|e| {
+        tracing::error!(error=?e, "error while getting the otp hash");
+        DomainError::Internal
+    })?;
+
+    Ok(user)
 }
 
 #[cfg(test)]

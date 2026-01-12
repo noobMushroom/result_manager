@@ -1,4 +1,5 @@
 use chrono::{Duration, Utc};
+use serde_json::Value;
 use wiremock::{Mock, ResponseTemplate, matchers::method};
 
 use crate::{helpers::spawn_app, teacher_login::LoginReqBody};
@@ -35,6 +36,47 @@ async fn responds_with_200_ok_for_valid_otp() {
     let response = app.send_verify_otp_req(&body).await;
 
     assert_eq!(response.status().as_u16(), 200)
+}
+
+#[actix::test]
+async fn responds_with_jwt_token_for_successful_login() {
+    let app = spawn_app().await;
+    let phone = "1234567890";
+    app.add_teacher(&phone).await;
+
+    Mock::given(method("POST"))
+        .respond_with(ResponseTemplate::new(200))
+        .expect(1)
+        .mount(&app.message_server)
+        .await;
+
+    let otp = app.request_otp_and_extract(&phone).await;
+    let body = VerifyOtpBody::new(phone, &otp);
+    let response = app.send_verify_otp_req(&body).await;
+
+    assert!(response.status().is_success());
+
+    let resp_body: Value = response.json().await.expect("failed to parse json");
+
+    assert!(resp_body.get("token").is_some());
+
+    let token = resp_body["token"].as_str().expect("token is not a string");
+
+    assert!(!token.is_empty());
+}
+
+#[actix::test]
+async fn doesnt_return_jwt_for_invalid() {
+    let app = spawn_app().await;
+    let phone = "1234567890";
+    let body = VerifyOtpBody::new(phone, "123456");
+    let response = app.send_verify_otp_req(&body).await;
+
+    assert_eq!(response.status().as_u16(), 401);
+
+    let resp_body: Value = response.json().await.expect("failed to parse json");
+
+    assert!(resp_body.get("token").is_none());
 }
 
 #[actix::test]

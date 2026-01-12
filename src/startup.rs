@@ -7,6 +7,7 @@ use crate::routes::users::otp::verify_user_otp;
 use crate::routes::users::register::add_teacher;
 use actix_web::dev::Server;
 use actix_web::{App, HttpServer, web};
+use secrecy::SecretString;
 use sqlx::PgPool;
 use sqlx::postgres::PgPoolOptions;
 use std::net::TcpListener;
@@ -33,7 +34,12 @@ impl Application {
         )?;
         let listener = TcpListener::bind(address)?;
         let port = listener.local_addr().unwrap().port();
-        let server = run(listener, connection_pool, message_client)?;
+        let server = run(
+            listener,
+            connection_pool,
+            message_client,
+            configuration.jwt.secret_token(),
+        )?;
 
         Ok(Self { port, server })
     }
@@ -56,9 +62,11 @@ pub fn run(
     listen: TcpListener,
     db_pool: PgPool,
     message_client: MessageClient,
+    jwt_secret: SecretString,
 ) -> Result<Server, std::io::Error> {
     let connection = web::Data::new(db_pool);
     let message_client = web::Data::new(message_client);
+    let jwt_secret = web::Data::new(jwt_secret);
     let server = HttpServer::new(move || {
         App::new()
             .wrap(TracingLogger::default())
@@ -71,6 +79,7 @@ pub fn run(
             .service(web::scope("/student").service(register_student))
             .service(health)
             .app_data(connection.clone())
+            .app_data(jwt_secret.clone())
             .app_data(message_client.clone())
     })
     .listen(listen)?

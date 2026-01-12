@@ -8,6 +8,18 @@ pub struct Settings {
     pub database: DatabaseSettings,
     pub application: ApplicationSettings,
     pub message_client: MessageClientSettings,
+    pub jwt: JwtSettings,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct JwtSettings {
+    pub secret_token: SecretString,
+}
+
+impl JwtSettings {
+    pub fn secret_token(self) -> SecretString {
+        self.secret_token
+    }
 }
 
 #[derive(Debug, Deserialize, Clone)]
