@@ -25,7 +25,7 @@ pub async fn jwt_middleware(
         .app_data::<actix_web::web::Data<SecretString>>()
         .ok_or_else(|| actix_web::error::ErrorInternalServerError("Internal Error"))?;
 
-    let claims = verify_jwt(&token, &secret)
+    let claims = verify_jwt(token, secret)
         .map_err(|_| actix_web::error::ErrorUnauthorized("Wrong token"))?;
 
     req.extensions_mut().insert(claims);
