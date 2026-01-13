@@ -33,13 +33,17 @@ fn get_valid_phone<'a>() -> &'a str {
     "1234567890"
 }
 
+fn get_admin_role<'a>() -> &'a str {
+    "admin"
+}
+
 #[actix::test]
 pub async fn register_student_returns_200_valid_data() {
     let app = spawn_app().await;
     mock_server(&app.message_server).await;
     let grade = "LKG";
     let body = AddStudentdBody::new("student", "12-12-2014", 12, "daddy", grade);
-    let token = app.get_token(get_valid_phone()).await;
+    let token = app.get_token(get_valid_phone(), get_admin_role()).await;
     let response = app.add_student(&body, &token).await;
 
     let saved = sqlx::query!(
@@ -71,7 +75,7 @@ async fn register_fails_if_admission_no_exists() {
 
     let body = AddStudentdBody::new("student", "12-12-2025", 12, "daddy", "LKG");
 
-    let token = app.get_token(get_valid_phone()).await;
+    let token = app.get_token(get_valid_phone(), get_admin_role()).await;
     app.add_student(&body, &token).await;
 
     let response = app.add_student(&body, &token).await;
@@ -92,7 +96,7 @@ async fn register_fails_for_invalid_grade() {
 
     mock_server(&app.message_server).await;
     let body = AddStudentdBody::new("student", "12-12-2023", 99, "daddy", "INVALID");
-    let token = app.get_token(get_valid_phone()).await;
+    let token = app.get_token(get_valid_phone(), get_admin_role()).await;
     let response = app.add_student(&body, &token).await;
     assert_eq!(response.status().as_u16(), 400);
     let resp_body: Value = response.json().await.expect("failed to get json");
@@ -109,7 +113,7 @@ async fn register_fails_for_invalid_dob_format() {
     mock_server(&app.message_server).await;
 
     let body = AddStudentdBody::new("student", "2023-12-10", 1, "daddy", "LKG");
-    let token = app.get_token(get_valid_phone()).await;
+    let token = app.get_token(get_valid_phone(), get_admin_role()).await;
     let response = app.add_student(&body, &token).await;
 
     assert_eq!(response.status().as_u16(), 400);
@@ -128,7 +132,7 @@ async fn register_fails_for_invalid_name() {
 
     mock_server(&app.message_server).await;
     let body = AddStudentdBody::new("student eauua .....", "23-12-2010", 1, "daddy", "LKG");
-    let token = app.get_token(get_valid_phone()).await;
+    let token = app.get_token(get_valid_phone(), get_admin_role()).await;
     let response = app.add_student(&body, &token).await;
 
     assert_eq!(response.status().as_u16(), 400);

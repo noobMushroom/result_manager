@@ -1,4 +1,5 @@
 use crate::add_students::AddStudentdBody;
+use crate::add_teacher::AddTeacherBody;
 use crate::otp::VerifyOtpBody;
 use crate::teacher_login::LoginReqBody;
 use chrono::{Duration, Utc};
@@ -53,6 +54,18 @@ impl TestApp {
             .expect("failed to execute request.")
     }
 
+    pub async fn send_add_teacher_req(&self, body: &AddTeacherBody, token: &str) -> Response {
+        let client = reqwest::Client::new();
+        client
+            .post(format!("{}/teacher/add_teacher", &self.address))
+            .bearer_auth(token)
+            .header("content-type", "application/json")
+            .json(body)
+            .send()
+            .await
+            .expect("failed to execute request.")
+    }
+
     pub async fn get_row_count_students(&self) -> Option<i64> {
         sqlx::query_scalar!("SELECT COUNT(*) as count FROM students")
             .fetch_one(&self.db_pool)
@@ -89,7 +102,7 @@ impl TestApp {
             .expect("failed to execute request.")
     }
 
-    pub async fn add_teacher(&self, phone: &str) {
+    pub async fn add_teacher(&self, phone: &str, role: &str) {
         sqlx::query!(
             r#"
         INSERT INTO teachers (id, name, phone_no, role, subscribed_at)
@@ -98,7 +111,7 @@ impl TestApp {
             Uuid::new_v4(),
             "some",
             phone.to_string(),
-            "admin",
+            role,
             Utc::now()
         )
         .execute(&self.db_pool)
@@ -157,28 +170,18 @@ impl TestApp {
         extract_otp(&raw).expect("OTP not found")
     }
 
-    pub async fn get_token(&self, phone: &str) -> String {
-        self.add_teacher(&phone).await;
-
+    pub async fn get_token(&self, phone: &str, role: &str) -> String {
+        self.add_teacher(&phone, role).await;
         let body = LoginReqBody::new(phone);
-
         self.send_login_req(&body).await;
-
         let requests = self.message_server.received_requests().await.unwrap();
-
         let last = requests.last().expect("no OTP request found");
-
         let raw = String::from_utf8(last.body.clone()).unwrap();
         let otp = extract_otp(&raw).expect("OTP not found");
-
         let verifyotpbodf = VerifyOtpBody::new(phone, &otp);
-
         let login_response = self.send_verify_otp_req(&verifyotpbodf).await;
-
         let resp_body: Value = login_response.json().await.expect("failed to parse json");
-
         let token = resp_body["token"].as_str().expect("token is not a string");
-
         token.to_string()
     }
 }

@@ -23,7 +23,7 @@ impl VerifyOtpBody {
 async fn responds_with_200_ok_for_valid_otp() {
     let app = spawn_app().await;
     let phone = "1234567890";
-    app.add_teacher(&phone).await;
+    app.add_teacher(&phone, "admin").await;
 
     Mock::given(method("POST"))
         .respond_with(ResponseTemplate::new(200))
@@ -42,7 +42,7 @@ async fn responds_with_200_ok_for_valid_otp() {
 async fn responds_with_jwt_token_for_successful_login() {
     let app = spawn_app().await;
     let phone = "1234567890";
-    app.add_teacher(&phone).await;
+    app.add_teacher(&phone, "admin").await;
 
     Mock::given(method("POST"))
         .respond_with(ResponseTemplate::new(200))
@@ -83,7 +83,7 @@ async fn doesnt_return_jwt_for_invalid() {
 async fn only_latest_otp_should_verify_2_try() {
     let app = spawn_app().await;
     let phone = "1234567890";
-    app.add_teacher(&phone).await;
+    app.add_teacher(&phone, "admin").await;
 
     Mock::given(method("POST"))
         .respond_with(ResponseTemplate::new(200))
@@ -110,7 +110,7 @@ async fn only_latest_otp_should_verify_2_try() {
 async fn only_latest_otp_should_verify_3_try() {
     let app = spawn_app().await;
     let phone = "1234567890";
-    app.add_teacher(&phone).await;
+    app.add_teacher(&phone, "admin").await;
 
     Mock::given(method("POST"))
         .respond_with(ResponseTemplate::new(200))
@@ -143,7 +143,7 @@ async fn only_latest_otp_should_verify_3_try() {
 async fn after_trying_3_times_user_should_be_ban() {
     let app = spawn_app().await;
     let phone = "1234567890";
-    app.add_teacher(&phone).await;
+    app.add_teacher(&phone, "admin").await;
 
     Mock::given(method("POST"))
         .respond_with(ResponseTemplate::new(200))
@@ -170,7 +170,7 @@ async fn after_trying_3_times_user_should_be_ban() {
 async fn responds_with_401_for_invalid_otp() {
     let app = spawn_app().await;
     let phone = "1234567890";
-    app.add_teacher(&phone).await;
+    app.add_teacher(&phone, "admin").await;
 
     let send_login_req_body = LoginReqBody::new(&phone);
 
@@ -193,7 +193,7 @@ async fn responds_with_401_for_invalid_otp() {
 async fn multiple_requests_should_increase_attempts_count() {
     let app = spawn_app().await;
     let phone = "1234567890";
-    app.add_teacher(&phone).await;
+    app.add_teacher(&phone, "admin").await;
     let send_login_req_body = LoginReqBody::new(&phone);
     Mock::given(method("POST"))
         .respond_with(ResponseTemplate::new(200))
@@ -215,7 +215,7 @@ async fn multiple_requests_should_increase_attempts_count() {
 async fn instant_request_should_return_429() {
     let app = spawn_app().await;
     let phone = "1234567890";
-    app.add_teacher(&phone).await;
+    app.add_teacher(&phone, "admin").await;
     let send_login_req_body = LoginReqBody::new(&phone);
     Mock::given(method("POST"))
         .respond_with(ResponseTemplate::new(200))

@@ -34,7 +34,7 @@ impl TryFrom<UserData> for NewTeacher {
         phone = %json.phone
     )
 )]
-#[post("/auth/add_teacher")]
+#[post("/add_teacher")]
 pub async fn add_teacher(
     json: web::Json<UserData>,
     connection: web::Data<PgPool>,
@@ -55,8 +55,8 @@ async fn insert_teacher(pool: &PgPool, new_teacher: &NewTeacher) -> Result<(), D
             VALUES ($1, $2, $3, $4, $5)
         "#,
         Uuid::new_v4(),
-        new_teacher.name.as_ref(),
         new_teacher.phone.as_ref(),
+        new_teacher.name.as_ref(),
         Utc::now(),
         new_teacher.role.to_string()
     )
@@ -65,7 +65,7 @@ async fn insert_teacher(pool: &PgPool, new_teacher: &NewTeacher) -> Result<(), D
     {
         Ok(_) => Ok(()),
         Err(sqlx::Error::Database(db_error))
-            if db_error.constraint() == Some("subscriptions_phone_no_key") =>
+            if db_error.constraint() == Some("teachers_phone_no_key") =>
         {
             Err(DomainError::DuplicatePhoneNo)
         }

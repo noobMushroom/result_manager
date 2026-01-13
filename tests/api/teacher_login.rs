@@ -29,7 +29,7 @@ pub async fn add_otp_for_valid_phone() {
     mock_server(&app.message_server).await;
 
     let phone = "1234567890";
-    app.add_teacher(&phone).await;
+    app.add_teacher(&phone, "admin").await;
     let body = LoginReqBody::new(phone);
     let response = app.send_login_req(&body).await;
     let count = app.get_row_count_otp().await;
@@ -41,7 +41,7 @@ pub async fn add_otp_for_valid_phone() {
 pub async fn doesnt_add_otp_for_invalid() {
     let app = spawn_app().await;
     let phone = "1234567892";
-    app.add_teacher("1234567890").await;
+    app.add_teacher("1234567890", "admin").await;
     let body = LoginReqBody::new(phone);
     let response = app.send_login_req(&body).await;
     let count = app.get_row_count_otp().await;
@@ -65,7 +65,7 @@ pub async fn return_forbidden_if_user_for_banned() {
     .execute(&app.db_pool)
     .await
     .unwrap();
-    app.add_teacher(&phone).await;
+    app.add_teacher(&phone, "admin").await;
     let body = LoginReqBody::new(phone);
     let response = app.send_login_req(&body).await;
     let count = app.get_row_count_otp().await;
