@@ -1,4 +1,4 @@
-use crate::auth::middleware::jwt_middleware;
+use crate::auth::middleware::{jwt_middleware, jwt_middleware_teacher};
 use crate::configuration::{DatabaseSettings, Settings};
 use crate::message_client::MessageClient;
 use crate::routes::health_check::health;
@@ -73,9 +73,13 @@ pub fn run(
         App::new()
             .wrap(TracingLogger::default())
             .service(
+                web::scope("/teacher")
+                    .wrap(from_fn(jwt_middleware_teacher))
+                    .service(add_teacher),
+            )
+            .service(
                 web::scope("/auth")
                     .service(teacher_login)
-                    .service(add_teacher)
                     .service(verify_user_otp),
             )
             .service(

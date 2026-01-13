@@ -1,6 +1,5 @@
-use crate::helpers::spawn_app;
+use crate::helpers::{mock_server, spawn_app};
 use chrono::{Duration, Utc};
-use wiremock::{Mock, ResponseTemplate, matchers::method};
 
 #[derive(serde::Serialize)]
 pub struct LoginReqBody {
@@ -27,12 +26,7 @@ pub async fn register_teacher_returns_200_invalid_data() {
 #[actix::test]
 pub async fn add_otp_for_valid_phone() {
     let app = spawn_app().await;
-
-    Mock::given(method("POST"))
-        .respond_with(ResponseTemplate::new(200))
-        .expect(1)
-        .mount(&app.message_server)
-        .await;
+    mock_server(&app.message_server).await;
 
     let phone = "1234567890";
     app.add_teacher(&phone).await;

@@ -1,7 +1,7 @@
 use crate::domain::errors::DomainError;
 use std::fmt;
 
-#[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum Role {
     Admin,

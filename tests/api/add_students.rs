@@ -72,8 +72,6 @@ async fn register_fails_if_admission_no_exists() {
     let body = AddStudentdBody::new("student", "12-12-2025", 12, "daddy", "LKG");
 
     let token = app.get_token(get_valid_phone()).await;
-    // this is a secret token
-
     app.add_student(&body, &token).await;
 
     let response = app.add_student(&body, &token).await;
