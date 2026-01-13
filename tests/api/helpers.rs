@@ -10,7 +10,8 @@ use result_management::telemetry::{get_subscriber, init_subscriber};
 use serde_json::Value;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use uuid::Uuid;
-use wiremock::MockServer;
+use wiremock::matchers::method;
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 static TRACING: Lazy<()> = Lazy::new(|| {
     let default_filter_level = "info".to_string();
@@ -40,10 +41,11 @@ pub async fn get_grade_id(grade: &str, db_pool: &PgPool) -> Uuid {
 }
 
 impl TestApp {
-    pub async fn add_student(&self, body: &AddStudentdBody) -> Response {
+    pub async fn add_student(&self, body: &AddStudentdBody, token: &str) -> Response {
         let client = reqwest::Client::new();
         client
             .post(format!("{}/student/add_student", &self.address))
+            .bearer_auth(token)
             .header("content-type", "application/json")
             .json(body)
             .send()
@@ -154,6 +156,31 @@ impl TestApp {
         let raw = String::from_utf8(last.body.clone()).unwrap();
         extract_otp(&raw).expect("OTP not found")
     }
+
+    pub async fn get_token(&self, phone: &str) -> String {
+        self.add_teacher(&phone).await;
+
+        let body = LoginReqBody::new(phone);
+
+        self.send_login_req(&body).await;
+
+        let requests = self.message_server.received_requests().await.unwrap();
+
+        let last = requests.last().expect("no OTP request found");
+
+        let raw = String::from_utf8(last.body.clone()).unwrap();
+        let otp = extract_otp(&raw).expect("OTP not found");
+
+        let verifyotpbodf = VerifyOtpBody::new(phone, &otp);
+
+        let login_response = self.send_verify_otp_req(&verifyotpbodf).await;
+
+        let resp_body: Value = login_response.json().await.expect("failed to parse json");
+
+        let token = resp_body["token"].as_str().expect("token is not a string");
+
+        token.to_string()
+    }
 }
 
 pub async fn spawn_app() -> TestApp {
@@ -208,4 +235,12 @@ pub fn extract_otp(body: &str) -> Option<String> {
         .split_whitespace()
         .find(|word| word.chars().all(|c| c.is_ascii_digit()))
         .map(|s| s.to_string())
+}
+
+pub async fn mock_server(server: &MockServer) {
+    Mock::given(method("POST"))
+        .respond_with(ResponseTemplate::new(200))
+        .expect(1..)
+        .mount(server)
+        .await
 }

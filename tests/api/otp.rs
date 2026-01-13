@@ -11,7 +11,7 @@ pub struct VerifyOtpBody {
 }
 
 impl VerifyOtpBody {
-    fn new(phone: &str, otp: &str) -> Self {
+    pub fn new(phone: &str, otp: &str) -> Self {
         Self {
             phone: phone.to_string(),
             otp: otp.to_string(),

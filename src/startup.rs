@@ -1,3 +1,4 @@
+use crate::auth::middleware::jwt_middleware;
 use crate::configuration::{DatabaseSettings, Settings};
 use crate::message_client::MessageClient;
 use crate::routes::health_check::health;
@@ -6,6 +7,7 @@ use crate::routes::users::login::teacher_login;
 use crate::routes::users::otp::verify_user_otp;
 use crate::routes::users::register::add_teacher;
 use actix_web::dev::Server;
+use actix_web::middleware::from_fn;
 use actix_web::{App, HttpServer, web};
 use secrecy::SecretString;
 use sqlx::PgPool;
@@ -76,7 +78,11 @@ pub fn run(
                     .service(add_teacher)
                     .service(verify_user_otp),
             )
-            .service(web::scope("/student").service(register_student))
+            .service(
+                web::scope("/student")
+                    .wrap(from_fn(jwt_middleware))
+                    .service(register_student),
+            )
             .service(health)
             .app_data(connection.clone())
             .app_data(jwt_secret.clone())
