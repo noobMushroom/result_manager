@@ -49,6 +49,8 @@ impl MessageClient {
             message,
         };
 
+        println!("hrere");
+
         self.http_client
             .post(&url)
             .header("X-api-Key", self.auth_id.expose_secret())

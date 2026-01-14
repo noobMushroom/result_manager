@@ -27,7 +27,7 @@ impl TryFrom<UserData> for NewTeacher {
 }
 
 #[tracing::instrument(
-    name = "adding a new subscriber",
+    name = "adding a new teacher",
     skip(json, connection),
     fields(
         name = %json.name,
@@ -45,7 +45,7 @@ pub async fn add_teacher(
 }
 
 #[tracing::instrument(
-    name = "saving the new student to the database",
+    name = "saving the new teacher to the database",
     skip(new_teacher, pool)
 )]
 async fn insert_teacher(pool: &PgPool, new_teacher: &NewTeacher) -> Result<(), DomainError> {

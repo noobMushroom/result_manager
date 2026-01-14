@@ -93,7 +93,13 @@ pub fn get_configuration() -> Result<Settings, config::ConfigError> {
                     .as_ref(),
             )
             .required(true),
+        )
+        .add_source(
+            config::Environment::with_prefix("message_client")
+                .keep_prefix(true)
+                .separator("__"),
         );
+
     settings.build()?.try_deserialize::<Settings>()
 }
 
