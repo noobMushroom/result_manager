@@ -1,3 +1,5 @@
+mod academics;
+mod add_result;
 mod add_students;
 mod add_teacher;
 mod health_check;

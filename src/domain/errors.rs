@@ -37,4 +37,7 @@ pub enum DomainError {
 
     #[error("Too Many Requests {0}")]
     TooManyRequest(String),
+
+    #[error("Bad request: {0}")]
+    BadRequest(String),
 }

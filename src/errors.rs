@@ -40,6 +40,7 @@ impl From<DomainError> for AppError {
             | DomainError::InvalidDateOfBirth
             | DomainError::InvalidRole
             | DomainError::UserNotFound => AppError::BadRequest(err.to_string()),
+            DomainError::BadRequest(msg) => AppError::BadRequest(msg.to_string()),
 
             DomainError::DuplicateAdmissionNo | DomainError::DuplicatePhoneNo => {
                 AppError::Conflict(err.to_string())

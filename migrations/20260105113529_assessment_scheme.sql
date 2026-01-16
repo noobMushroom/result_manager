@@ -1,5 +1,6 @@
 -- Add migration script here
 CREATE TABLE assessment_scheme (
+    id UUID DEFAULT uuid_generate_v4(),
     grade_id uuid NOT NULL,
     exam_id uuid NOT NULL,
     subject_id uuid NOT NULL,
@@ -23,7 +24,7 @@ JOIN exams e ON true
 JOIN exam_types et ON e.exam_type_id = et.id
 JOIN terms t ON e.term_id = t.id
 JOIN subjects s ON true
-WHERE g.name = 'Nursery'
+WHERE g.name = 'NURSERY'
   AND et.code = 'WRITT'
   AND t.name IN ('Half Yearly Term', 'Second Term', 'Annual Term')
   AND s.code IN ('MATHS', 'ENG', 'HIN');
@@ -35,7 +36,7 @@ JOIN exams e ON true
 JOIN exam_types et ON e.exam_type_id = et.id
 JOIN terms t ON e.term_id = t.id
 JOIN subjects s ON true
-WHERE g.name = 'Nursery'
+WHERE g.name = 'NURSERY'
   AND et.code = 'HW'
   AND t.name IN ('Half Yearly Term', 'Second Term', 'Annual Term')
   AND s.code IN ('MATHS', 'ENG', 'HIN');
@@ -47,7 +48,7 @@ JOIN exams e ON true
 JOIN exam_types et ON e.exam_type_id = et.id
 JOIN terms t ON e.term_id = t.id
 JOIN subjects s ON true
-WHERE g.name = 'Nursery'
+WHERE g.name = 'NURSERY'
   AND et.code = 'CN'
   AND t.name IN ('Half Yearly Term', 'Second Term', 'Annual Term')
   AND s.code IN ('MATHS', 'ENG', 'HIN');
@@ -59,7 +60,7 @@ JOIN exams e ON true
 JOIN exam_types et ON e.exam_type_id = et.id
 JOIN terms t ON e.term_id = t.id
 JOIN subjects s ON true
-WHERE g.name = 'Nursery'
+WHERE g.name = 'NURSERY'
   AND et.code = 'ORAL_PRAC'
   AND t.name IN ('Half Yearly Term', 'Second Term', 'Annual Term')
   AND s.code IN ('ENG_ORAL', 'ENG_RHYMES','HIN_ORAL', 'HIN_RHYMES','MATHS_ORAL');
@@ -71,7 +72,7 @@ JOIN exams e ON true
 JOIN exam_types et ON e.exam_type_id = et.id
 JOIN terms t ON e.term_id = t.id
 JOIN subjects s ON true
-WHERE g.name = 'Nursery'
+WHERE g.name = 'NURSERY'
   AND et.code = 'ACTIVITY'
   AND t.name IN ('Half Yearly Term', 'Annual Term')
   AND s.code IN ('WELL_DRESSED', 'DRAW','PT', 'WORKSHEET');
@@ -83,7 +84,7 @@ JOIN exams e ON true
 JOIN exam_types et ON e.exam_type_id = et.id
 JOIN terms t ON e.term_id = t.id
 JOIN subjects s ON true
-WHERE g.name = 'Nursery'
+WHERE g.name = 'NURSERY'
   AND et.code = 'ACTIVITY'
   AND t.name IN ( 'Second Term')
   AND s.code IN ('WELL_DRESSED', 'DRAW','PT');
@@ -95,7 +96,7 @@ JOIN exams e ON true
 JOIN exam_types et ON e.exam_type_id = et.id
 JOIN terms t ON e.term_id = t.id
 JOIN subjects s ON true
-WHERE g.name = 'Nursery'
+WHERE g.name = 'NURSERY'
   AND et.code = 'CLASS_PER'
   AND t.name IN ('Half Yearly Term', 'Second Term', 'Annual Term')
   AND s.code IN ('CLASS_PERF');

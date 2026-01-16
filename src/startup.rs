@@ -1,7 +1,11 @@
 use crate::auth::middleware::{jwt_middleware, jwt_middleware_teacher};
 use crate::configuration::{DatabaseSettings, Settings};
 use crate::message_client::MessageClient;
+use crate::routes::academics::get_assesment::get_assessment_scheme;
+use crate::routes::academics::get_grades::get_grades;
+use crate::routes::academics::get_terms::get_terms;
 use crate::routes::health_check::health;
+use crate::routes::result::add_result::add_result;
 use crate::routes::students::register::register_student;
 use crate::routes::users::login::teacher_login;
 use crate::routes::users::otp::verify_user_otp;
@@ -72,6 +76,18 @@ pub fn run(
     let server = HttpServer::new(move || {
         App::new()
             .wrap(TracingLogger::default())
+            .service(
+                web::scope("/result")
+                    .wrap(from_fn(jwt_middleware))
+                    .service(add_result),
+            )
+            .service(
+                web::scope("/academics")
+                    .wrap(from_fn(jwt_middleware))
+                    .service(get_grades)
+                    .service(get_terms)
+                    .service(get_assessment_scheme),
+            )
             .service(
                 web::scope("/teacher")
                     .wrap(from_fn(jwt_middleware_teacher))

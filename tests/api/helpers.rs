@@ -6,6 +6,9 @@ use chrono::{Duration, Utc};
 use once_cell::sync::Lazy;
 use reqwest::Response;
 use result_management::configuration::{DatabaseSettings, get_configuration};
+use result_management::routes::academics::get_grades::GradeBodyResponse;
+use result_management::routes::academics::get_terms::TermsResponse;
+use result_management::routes::result::add_result::AddMarksData;
 use result_management::startup::{Application, get_connection_pool};
 use result_management::telemetry::{get_subscriber, init_subscriber};
 use serde_json::Value;
@@ -46,6 +49,52 @@ impl TestApp {
         let client = reqwest::Client::new();
         client
             .post(format!("{}/student/add_student", &self.address))
+            .bearer_auth(token)
+            .header("content-type", "application/json")
+            .json(body)
+            .send()
+            .await
+            .expect("failed to execute request.")
+    }
+
+    pub async fn get_term(&self, token: &str, term: &str) -> TermsResponse {
+        let client = reqwest::Client::new();
+        let response = client
+            .get(format!("{}/academics/terms", &self.address))
+            .bearer_auth(&token)
+            .send()
+            .await
+            .expect("failed to send request");
+
+        let item = response
+            .json::<Vec<TermsResponse>>()
+            .await
+            .expect("failed to get terrms");
+
+        item.into_iter().find(|v| v.name == term).unwrap()
+    }
+
+    pub async fn get_grade(&self, token: &str, grade: &str) -> GradeBodyResponse {
+        let client = reqwest::Client::new();
+        let response = client
+            .get(format!("{}/academics/grades", &self.address))
+            .bearer_auth(&token)
+            .send()
+            .await
+            .expect("failed to send request");
+
+        let item = response
+            .json::<Vec<GradeBodyResponse>>()
+            .await
+            .expect("failed to get terrms");
+
+        item.into_iter().find(|v| v.name == grade).unwrap()
+    }
+
+    pub async fn send_add_marks_request(&self, body: &AddMarksData, token: &str) -> Response {
+        let client = reqwest::Client::new();
+        client
+            .post(format!("{}/result/add_marks", &self.address))
             .bearer_auth(token)
             .header("content-type", "application/json")
             .json(body)

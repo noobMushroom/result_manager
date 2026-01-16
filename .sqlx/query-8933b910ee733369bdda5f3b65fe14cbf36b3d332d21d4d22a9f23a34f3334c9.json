@@ -1,0 +1,89 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            a.id           AS \"assessment_id!\",\n\n            t.id           AS \"term_id!\",\n            t.name         AS \"term_name!\",\n\n            s.id           AS \"subject_id!\",\n            s.name         AS \"subject_name!\",\n            s.code         AS \"subject_code!\",\n\n            e.id           AS \"exam_id!\",\n            e.display_name AS \"exam_display_name!\",\n\n            et.id          AS \"exam_type_id!\",\n            et.code        AS \"exam_type_code!\",\n\n            a.evaluation_type AS \"evaluation_type!\",\n            a.max_marks\n        FROM assessment_scheme a\n        JOIN exams e\n            ON a.exam_id = e.id\n        JOIN exam_types et\n            ON e.exam_type_id = et.id\n        JOIN terms t\n            ON e.term_id = t.id\n        JOIN subjects s\n            ON a.subject_id = s.id\n        WHERE a.grade_id = $1\n          AND e.term_id = $2\n        ORDER BY\n            s.name,\n            et.code\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "assessment_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "term_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "term_name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "subject_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "subject_name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "subject_code!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "exam_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 7,
+        "name": "exam_display_name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "exam_type_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 9,
+        "name": "exam_type_code!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "evaluation_type!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "max_marks",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "8933b910ee733369bdda5f3b65fe14cbf36b3d332d21d4d22a9f23a34f3334c9"
+}
