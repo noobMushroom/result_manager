@@ -6,6 +6,7 @@ use crate::routes::academics::get_grades::get_grades;
 use crate::routes::academics::get_terms::get_terms;
 use crate::routes::health_check::health;
 use crate::routes::result::add_result::add_result;
+use crate::routes::students::get_student::{get_students, seach_students};
 use crate::routes::students::register::register_student;
 use crate::routes::users::login::teacher_login;
 use crate::routes::users::otp::verify_user_otp;
@@ -101,7 +102,9 @@ pub fn run(
             .service(
                 web::scope("/student")
                     .wrap(from_fn(jwt_middleware))
-                    .service(register_student),
+                    .service(get_students)
+                    .service(register_student)
+                    .service(seach_students),
             )
             .service(health)
             .app_data(connection.clone())

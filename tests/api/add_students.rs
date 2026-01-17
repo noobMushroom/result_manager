@@ -12,7 +12,7 @@ pub struct AddStudentdBody {
 }
 
 impl AddStudentdBody {
-    fn new(
+    pub fn new(
         name: &str,
         date_of_birth: &str,
         admission_no: u16,

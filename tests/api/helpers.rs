@@ -57,6 +57,16 @@ impl TestApp {
             .expect("failed to execute request.")
     }
 
+    pub async fn get_students(&self, grade: &str, token: &str) -> Response {
+        let client = reqwest::Client::new();
+        client
+            .get(format!("{}/student/get_students/{}", &self.address, &grade))
+            .bearer_auth(token)
+            .send()
+            .await
+            .expect("failed to execute request.")
+    }
+
     pub async fn get_term(&self, token: &str, term: &str) -> TermsResponse {
         let client = reqwest::Client::new();
         let response = client

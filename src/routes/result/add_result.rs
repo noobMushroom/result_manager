@@ -3,17 +3,15 @@ use actix_web::{HttpResponse, post, web};
 use sqlx::PgPool;
 use uuid::Uuid;
 
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(serde::Deserialize, serde::Serialize, Debug)]
 pub struct AddMarksData {
     pub student_id: Uuid,
-    pub term: Uuid,
     pub marks: Vec<MarksBody>,
 }
 
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(serde::Deserialize, serde::Serialize, Debug)]
 pub struct MarksBody {
-    pub subject: Uuid,
-    pub exam_type: Uuid,
+    pub assesment_id: Uuid,
     pub marks: Option<i32>,
     pub grade: Option<String>,
 }
@@ -30,6 +28,10 @@ impl MarksBody {
     }
 }
 
+#[tracing::instrument(name = "Adding marks to the database", skip(pool), 
+    fields (
+        student= %body.student_id,
+))]
 #[post["/add_marks"]]
 pub async fn add_result(
     pool: web::Data<PgPool>,

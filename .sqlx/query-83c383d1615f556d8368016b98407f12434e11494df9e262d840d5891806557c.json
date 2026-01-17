@@ -1,0 +1,56 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            s.id,\n            s.name,\n            s.father_name,\n            g.name AS grade_name,\n            s.admission_no,\n            s.date_of_birth\n        FROM students s\n        JOIN grades g ON s.grade_id = g.id\n        WHERE\n            ($1::uuid IS NULL OR s.grade_id = $1)\n        AND ($2::int IS NULL OR s.admission_no = $2)\n        AND (\n              $3::text IS NULL\n              OR s.name ILIKE '%' || $3 || '%'\n              OR s.father_name ILIKE '%' || $3 || '%'\n        )\n        ORDER BY s.admission_no\n        LIMIT $4 OFFSET $5\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "father_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "grade_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "admission_no",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "date_of_birth",
+        "type_info": "Date"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4",
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "83c383d1615f556d8368016b98407f12434e11494df9e262d840d5891806557c"
+}

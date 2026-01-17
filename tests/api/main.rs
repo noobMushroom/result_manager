@@ -2,6 +2,7 @@ mod academics;
 mod add_result;
 mod add_students;
 mod add_teacher;
+mod get_students;
 mod health_check;
 mod helpers;
 mod otp;

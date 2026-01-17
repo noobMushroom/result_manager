@@ -24,6 +24,9 @@ pub enum AppError {
 
     #[error("Too many Requests")]
     TooManyRequests(String),
+
+    #[error("Not Found")]
+    NotFound,
 }
 
 #[derive(serde::Serialize)]
@@ -82,6 +85,12 @@ impl ResponseError for AppError {
             AppError::TooManyRequests(msg) => builder
                 .insert_header(ContentType::json())
                 .json(ErrorResponse { error: msg }),
+
+            AppError::NotFound => builder
+                .insert_header(ContentType::json())
+                .json(ErrorResponse {
+                    error: "404 Not found",
+                }),
         }
     }
 
@@ -93,6 +102,7 @@ impl ResponseError for AppError {
             AppError::Unauthorised => StatusCode::UNAUTHORIZED,
             AppError::Forbidden => StatusCode::FORBIDDEN,
             AppError::TooManyRequests(_) => StatusCode::TOO_MANY_REQUESTS,
+            AppError::NotFound => StatusCode::NOT_FOUND,
         }
     }
 }

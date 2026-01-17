@@ -29,3 +29,27 @@ pub async fn get_grades(pool: web::Data<PgPool>) -> Result<HttpResponse, AppErro
 
     Ok(HttpResponse::Ok().json(grades))
 }
+
+#[tracing::instrument(name = "getting the grade uuid from db if exists", skip(pool))]
+pub async fn get_grade_info(
+    pool: &PgPool,
+    grade_name: &str,
+) -> Result<Option<GradeBodyResponse>, AppError> {
+    let grade = sqlx::query_as!(
+        GradeBodyResponse,
+        r#"
+        SELECT id, name
+        FROM grades
+        WHERE name=$1
+        "#,
+        grade_name
+    )
+    .fetch_optional(pool)
+    .await
+    .map_err(|e| {
+        tracing::error!(error=?e, "Error loading grades");
+        AppError::Internal
+    })?;
+
+    Ok(grade)
+}

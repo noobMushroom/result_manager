@@ -68,6 +68,7 @@ async fn get_assessment_test() {
     assert_eq!(response.status().as_u16(), 200);
 
     let terms: Vec<AssessmentResponse> = response.json().await.expect("falied to convert to json");
+    assert_eq!(terms.len(), 19);
     assert!(!terms.is_empty());
 }
 

@@ -21,7 +21,7 @@ impl TryFrom<String> for EvaluationType {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct AssessmentBody {
     pub term: Uuid,
     pub grade: Uuid,
@@ -48,6 +48,11 @@ pub struct AssessmentResponse {
     pub max_marks: Option<i32>,
 }
 
+#[tracing::instrument(name = "getting the assesment from db", skip(pool), 
+    fields (
+        grade_id= %query.grade,
+        term_id= %query.term
+))]
 #[get("/assessment-scheme")]
 pub async fn get_assessment_scheme(
     pool: web::Data<PgPool>,

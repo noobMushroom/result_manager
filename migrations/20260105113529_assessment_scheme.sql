@@ -1,6 +1,6 @@
 -- Add migration script here
 CREATE TABLE assessment_scheme (
-    id UUID DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     grade_id uuid NOT NULL,
     exam_id uuid NOT NULL,
     subject_id uuid NOT NULL,
@@ -8,7 +8,7 @@ CREATE TABLE assessment_scheme (
     evaluation_type TEXT NOT NULL,  -- 'MARKS' or 'GRADE'
     max_marks INT,                  -- NULL if GRADE
 
-    PRIMARY KEY (grade_id, exam_id, subject_id),
+    UNIQUE (grade_id, exam_id, subject_id),
 
     CHECK (
         (evaluation_type = 'MARKS' AND max_marks IS NOT NULL)

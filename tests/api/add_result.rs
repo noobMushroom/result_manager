@@ -1,7 +1,6 @@
+use crate::helpers::{mock_server, spawn_app};
 use result_management::routes::result::add_result::{AddMarksData, MarksBody};
 use uuid::Uuid;
-
-use crate::helpers::{mock_server, spawn_app};
 
 fn get_phone<'a>() -> &'a str {
     "1234567890"
@@ -11,22 +10,22 @@ fn get_admin_role<'a>() -> &'a str {
     "admin"
 }
 
-fn demo_marks_body() -> MarksBody {
-    MarksBody {
-        subject: Uuid::new_v4(),
-        exam_type: Uuid::new_v4(),
-        marks: None,
-        grade: None,
-    }
-}
-
-fn demo_add_marks_data(demo_marks: Vec<MarksBody>) -> AddMarksData {
-    AddMarksData {
-        student_id: Uuid::new_v4(),
-        term: Uuid::new_v4(),
-        marks: demo_marks,
-    }
-}
+// fn demo_marks_body() -> MarksBody {
+//     MarksBody {
+//         subject: Uuid::new_v4(),
+//         exam_type: Uuid::new_v4(),
+//         marks: None,
+//         grade: None,
+//     }
+// }
+//
+// fn demo_add_marks_data(demo_marks: Vec<MarksBody>) -> AddMarksData {
+//     AddMarksData {
+//         student_id: Uuid::new_v4(),
+//         term: Uuid::new_v4(),
+//         marks: demo_marks,
+//     }
+// }
 
 // #[actix::test]
 // async fn both_marks_and_grade_present_return_error() {
