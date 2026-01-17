@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT  name, phone_no, role FROM teachers where phone_no='1234567890'",
+  "query": "SELECT  name, phone_no, role FROM teachers where phone_no='2234567890'",
   "describe": {
     "columns": [
       {
@@ -28,5 +28,5 @@
       false
     ]
   },
-  "hash": "5f1393efdb20bdef4abb767564ff37e9382fffd769957c40e598cdb44bcda2a6"
+  "hash": "015c2aa171e8bc5428a65f2578f81452c6d73b24881d73299a2524762959c4c5"
 }
