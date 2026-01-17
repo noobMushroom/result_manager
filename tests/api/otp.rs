@@ -1,8 +1,10 @@
 use chrono::{Duration, Utc};
 use serde_json::Value;
-use wiremock::{Mock, ResponseTemplate, matchers::method};
 
-use crate::{helpers::spawn_app, teacher_login::LoginReqBody};
+use crate::{
+    helpers::{mock_server, spawn_app},
+    teacher_login::LoginReqBody,
+};
 
 #[derive(serde::Serialize)]
 pub struct VerifyOtpBody {
@@ -23,14 +25,7 @@ impl VerifyOtpBody {
 async fn responds_with_200_ok_for_valid_otp() {
     let app = spawn_app().await;
     let phone = "1234567890";
-    app.add_teacher(&phone, "admin").await;
-
-    Mock::given(method("POST"))
-        .respond_with(ResponseTemplate::new(200))
-        .expect(1)
-        .mount(&app.message_server)
-        .await;
-
+    mock_server(&app.message_server).await;
     let otp = app.request_otp_and_extract(&phone).await;
     let body = VerifyOtpBody::new(phone, &otp);
     let response = app.send_verify_otp_req(&body).await;
@@ -42,14 +37,7 @@ async fn responds_with_200_ok_for_valid_otp() {
 async fn responds_with_jwt_token_for_successful_login() {
     let app = spawn_app().await;
     let phone = "1234567890";
-    app.add_teacher(&phone, "admin").await;
-
-    Mock::given(method("POST"))
-        .respond_with(ResponseTemplate::new(200))
-        .expect(1)
-        .mount(&app.message_server)
-        .await;
-
+    mock_server(&app.message_server).await;
     let otp = app.request_otp_and_extract(&phone).await;
     let body = VerifyOtpBody::new(phone, &otp);
     let response = app.send_verify_otp_req(&body).await;
@@ -83,13 +71,7 @@ async fn doesnt_return_jwt_for_invalid() {
 async fn only_latest_otp_should_verify_2_try() {
     let app = spawn_app().await;
     let phone = "1234567890";
-    app.add_teacher(&phone, "admin").await;
-
-    Mock::given(method("POST"))
-        .respond_with(ResponseTemplate::new(200))
-        .expect(1..)
-        .mount(&app.message_server)
-        .await;
+    mock_server(&app.message_server).await;
 
     let otp1 = app.request_otp_and_extract(phone).await;
     app.rewind_latest_otp_created_at(phone).await;
@@ -110,14 +92,7 @@ async fn only_latest_otp_should_verify_2_try() {
 async fn only_latest_otp_should_verify_3_try() {
     let app = spawn_app().await;
     let phone = "1234567890";
-    app.add_teacher(&phone, "admin").await;
-
-    Mock::given(method("POST"))
-        .respond_with(ResponseTemplate::new(200))
-        .expect(1..)
-        .mount(&app.message_server)
-        .await;
-
+    mock_server(&app.message_server).await;
     let otp1 = app.request_otp_and_extract(phone).await;
     app.rewind_latest_otp_created_at(phone).await;
     let otp2 = app.request_otp_and_extract(phone).await;
@@ -143,13 +118,7 @@ async fn only_latest_otp_should_verify_3_try() {
 async fn after_trying_3_times_user_should_be_ban() {
     let app = spawn_app().await;
     let phone = "1234567890";
-    app.add_teacher(&phone, "admin").await;
-
-    Mock::given(method("POST"))
-        .respond_with(ResponseTemplate::new(200))
-        .expect(1..)
-        .mount(&app.message_server)
-        .await;
+    mock_server(&app.message_server).await;
     let body = LoginReqBody::new(phone);
     app.send_login_req(&body).await;
     app.rewind_latest_otp_created_at(phone).await;
@@ -170,15 +139,10 @@ async fn after_trying_3_times_user_should_be_ban() {
 async fn responds_with_401_for_invalid_otp() {
     let app = spawn_app().await;
     let phone = "1234567890";
-    app.add_teacher(&phone, "admin").await;
 
     let send_login_req_body = LoginReqBody::new(&phone);
 
-    Mock::given(method("POST"))
-        .respond_with(ResponseTemplate::new(200))
-        .expect(1)
-        .mount(&app.message_server)
-        .await;
+    mock_server(&app.message_server).await;
 
     app.send_login_req(&send_login_req_body).await;
 
@@ -193,14 +157,8 @@ async fn responds_with_401_for_invalid_otp() {
 async fn multiple_requests_should_increase_attempts_count() {
     let app = spawn_app().await;
     let phone = "1234567890";
-    app.add_teacher(&phone, "admin").await;
     let send_login_req_body = LoginReqBody::new(&phone);
-    Mock::given(method("POST"))
-        .respond_with(ResponseTemplate::new(200))
-        .expect(1..)
-        .mount(&app.message_server)
-        .await;
-
+    mock_server(&app.message_server).await;
     // sent once
     app.send_login_req(&send_login_req_body).await;
     // rewinded 30 seconds
@@ -215,14 +173,8 @@ async fn multiple_requests_should_increase_attempts_count() {
 async fn instant_request_should_return_429() {
     let app = spawn_app().await;
     let phone = "1234567890";
-    app.add_teacher(&phone, "admin").await;
     let send_login_req_body = LoginReqBody::new(&phone);
-    Mock::given(method("POST"))
-        .respond_with(ResponseTemplate::new(200))
-        .expect(1..)
-        .mount(&app.message_server)
-        .await;
-
+    mock_server(&app.message_server).await;
     app.send_login_req(&send_login_req_body).await;
     let res = app.send_login_req(&send_login_req_body).await;
     assert_eq!(res.status().as_u16(), 429)
@@ -253,7 +205,7 @@ pub async fn return_forbidden_if_user_for_banned_verify() {
 #[actix::test]
 pub async fn return_unautharised_if_no_is_not_registered() {
     let app = spawn_app().await;
-    let phone = "1234567890";
+    let phone = "1234566890";
     let body = VerifyOtpBody::new(phone, "123456");
     let response = app.send_verify_otp_req(&body).await;
     assert_eq!(response.status().as_u16(), 401)

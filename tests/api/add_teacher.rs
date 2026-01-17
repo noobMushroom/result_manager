@@ -26,21 +26,21 @@ fn role() -> String {
 }
 
 fn phone() -> String {
-    "1234567890".to_string()
+    "2234567890".to_string()
 }
 
 #[actix::test]
 pub async fn add_teacher_should_return_200_for_valid_data() {
     let app = spawn_app().await;
-    mock_server(&app.message_server).await;
     let add_teacher_body = AddTeacherBody::generate();
-    let token = app.get_token("1234567789", "admin").await;
-    let response = app.send_add_teacher_req(&add_teacher_body, &token).await;
+    let response = app
+        .send_add_teacher_req(&add_teacher_body, &app.test_user.token)
+        .await;
 
     assert_eq!(response.status().as_u16(), 200);
 
     let saved =
-        sqlx::query!("SELECT  name, phone_no, role FROM teachers where phone_no='1234567890'")
+        sqlx::query!("SELECT  name, phone_no, role FROM teachers where phone_no='2234567890'")
             .fetch_one(&app.db_pool)
             .await
             .expect("failed to fetch new subscription.");
@@ -53,11 +53,11 @@ pub async fn add_teacher_should_return_200_for_valid_data() {
 #[actix::test]
 pub async fn add_teacher_fails_for_invalid_name() {
     let app = spawn_app().await;
-    mock_server(&app.message_server).await;
     let mut add_teacher_body = AddTeacherBody::generate();
     add_teacher_body.name = "asuhau ....".to_string();
-    let token = app.get_token("1234567789", "admin").await;
-    let response = app.send_add_teacher_req(&add_teacher_body, &token).await;
+    let response = app
+        .send_add_teacher_req(&add_teacher_body, &app.test_user.token)
+        .await;
 
     assert_eq!(response.status().as_u16(), 400);
 }
@@ -65,11 +65,11 @@ pub async fn add_teacher_fails_for_invalid_name() {
 #[actix::test]
 pub async fn add_teacher_fails_for_invalid_phone() {
     let app = spawn_app().await;
-    mock_server(&app.message_server).await;
     let mut add_teacher_body = AddTeacherBody::generate();
     add_teacher_body.phone = "asuhau ....".to_string();
-    let token = app.get_token("1234567789", "admin").await;
-    let response = app.send_add_teacher_req(&add_teacher_body, &token).await;
+    let response = app
+        .send_add_teacher_req(&add_teacher_body, &app.test_user.token)
+        .await;
 
     assert_eq!(response.status().as_u16(), 400);
 }
@@ -77,11 +77,11 @@ pub async fn add_teacher_fails_for_invalid_phone() {
 #[actix::test]
 pub async fn add_teacher_fails_for_invalid_role() {
     let app = spawn_app().await;
-    mock_server(&app.message_server).await;
     let mut add_teacher_body = AddTeacherBody::generate();
     add_teacher_body.role = "asuhau ....".to_string();
-    let token = app.get_token("1234567789", "admin").await;
-    let response = app.send_add_teacher_req(&add_teacher_body, &token).await;
+    let response = app
+        .send_add_teacher_req(&add_teacher_body, &app.test_user.token)
+        .await;
 
     assert_eq!(response.status().as_u16(), 400);
 }
@@ -89,11 +89,12 @@ pub async fn add_teacher_fails_for_invalid_role() {
 #[actix::test]
 pub async fn add_teacher_should_return_conflict_for_adding_same_number() {
     let app = spawn_app().await;
-    mock_server(&app.message_server).await;
     let add_teacher_body = AddTeacherBody::generate();
-    let token = app.get_token("1234567789", "admin").await;
-    app.send_add_teacher_req(&add_teacher_body, &token).await;
-    let response = app.send_add_teacher_req(&add_teacher_body, &token).await;
+    app.send_add_teacher_req(&add_teacher_body, &app.test_user.token)
+        .await;
+    let response = app
+        .send_add_teacher_req(&add_teacher_body, &app.test_user.token)
+        .await;
 
     assert_eq!(response.status().as_u16(), 409);
 }
@@ -101,9 +102,9 @@ pub async fn add_teacher_should_return_conflict_for_adding_same_number() {
 #[actix::test]
 pub async fn request_without_token_return_unauthorised() {
     let app = spawn_app().await;
-    let client = reqwest::Client::new();
     let body = AddTeacherBody::generate();
-    let response = client
+    let response = app
+        .api_client
         .post(format!("{}/teacher/add-teacher", &app.address))
         .header("content-type", "application/json")
         .json(&body)
@@ -115,11 +116,11 @@ pub async fn request_without_token_return_unauthorised() {
 }
 
 #[actix::test]
-pub async fn request_with_wrong_tokken_return_401() {
+pub async fn request_with_wrong_token_return_401() {
     let app = spawn_app().await;
-    let client = reqwest::Client::new();
     let body = AddTeacherBody::generate();
-    let response = client
+    let response = app
+        .api_client
         .post(format!("{}/teacher/add-teacher", &app.address))
         .bearer_auth("wrong token")
         .header("content-type", "application/json")
@@ -132,13 +133,11 @@ pub async fn request_with_wrong_tokken_return_401() {
 }
 
 #[actix::test]
-pub async fn request_with_basic_tokken_return_401() {
+pub async fn request_with_basic_token_return_401() {
     let app = spawn_app().await;
-
     mock_server(&app.message_server).await;
     let add_teacher_body = AddTeacherBody::generate();
-    let token = app.get_token("1234567789", "teacher").await;
+    let token = app.get_token("2233567789", "teacher").await;
     let response = app.send_add_teacher_req(&add_teacher_body, &token).await;
-
     assert_eq!(response.status().as_u16(), 403);
 }

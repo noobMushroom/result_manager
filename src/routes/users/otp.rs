@@ -143,7 +143,7 @@ async fn add_user_to_ban_table(pool: &PgPool, phone: &Phone) -> Result<(), Domai
             VALUES($1, $2, $3)
         "#,
         phone.as_ref(),
-        Utc::now() + Duration::minutes(20),
+        Utc::now().checked_add_signed(Duration::minutes(20)),
         "Too many otp attempts"
     )
     .execute(pool)
@@ -170,7 +170,7 @@ async fn add_otp_to_table(
         Uuid::new_v4(),
         phone.as_ref(),
         hash.expose_secret(),
-        Utc::now() + chrono::Duration::minutes(5),
+        Utc::now().checked_add_signed(Duration::minutes(5)),
         attempts,
         Utc::now(),
     )

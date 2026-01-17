@@ -6,11 +6,6 @@ use chrono::NaiveDate;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-#[derive(serde::Deserialize, Debug)]
-pub struct GetStudentsQuery {
-    grade: Uuid,
-}
-
 #[derive(serde::Deserialize, serde::Serialize, Debug)]
 pub struct GetStudentsResponse {
     id: Uuid,

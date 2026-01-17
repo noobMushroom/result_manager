@@ -13,7 +13,7 @@ pub struct Claims {
 impl Claims {
     pub fn new(sub: Uuid, role: Role) -> Self {
         let exp = Utc::now()
-            .checked_add_signed(Duration::days(10))
+            .checked_add_signed(Duration::days(14))
             .expect("Valid timestamp")
             .timestamp() as usize;
         Self {

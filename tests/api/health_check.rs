@@ -2,8 +2,8 @@ use crate::helpers::spawn_app;
 #[actix::test]
 async fn health_check() {
     let app = spawn_app().await;
-    let client = reqwest::Client::new();
-    let res = client
+    let res = app
+        .api_client
         .get(&format!("{}/health", &app.address))
         .send()
         .await

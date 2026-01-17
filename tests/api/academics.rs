@@ -1,19 +1,16 @@
+use crate::helpers::spawn_app;
 use result_management::routes::academics::{
     get_assesment::AssessmentResponse, get_grades::GradeBodyResponse, get_terms::TermsResponse,
 };
 
-use crate::helpers::{mock_server, spawn_app};
-
 #[actix::test]
 async fn get_all_grades() {
     let app = spawn_app().await;
-    mock_server(&app.message_server).await;
-    let token = app.get_token("1234567890", "admin").await;
-    let client = reqwest::Client::new();
 
-    let response = client
+    let response = app
+        .api_client
         .get(format!("{}/academics/grades", app.address))
-        .bearer_auth(&token)
+        .bearer_auth(&app.test_user.token)
         .send()
         .await
         .expect("failed to send request");
@@ -28,13 +25,10 @@ async fn get_all_grades() {
 #[actix::test]
 async fn get_all_terms() {
     let app = spawn_app().await;
-    mock_server(&app.message_server).await;
-    let token = app.get_token("1234567890", "admin").await;
-    let client = reqwest::Client::new();
-
-    let response = client
+    let response = app
+        .api_client
         .get(format!("{}/academics/terms", app.address))
-        .bearer_auth(&token)
+        .bearer_auth(&app.test_user.token)
         .send()
         .await
         .expect("failed to send request");
@@ -49,18 +43,16 @@ async fn get_all_terms() {
 #[actix::test]
 async fn get_assessment_test() {
     let app = spawn_app().await;
-    mock_server(&app.message_server).await;
-    let token = app.get_token("1234567890", "admin").await;
-    let term = app.get_term(&token, "Half Yearly Term").await;
-    let grade = app.get_grade(&token, "LKG").await;
-    let client = reqwest::Client::new();
+    let term = app.get_term(&app.test_user.token, "Half Yearly Term").await;
+    let grade = app.get_grade(&app.test_user.token, "LKG").await;
 
-    let response = client
+    let response = app
+        .api_client
         .get(format!(
             "{}/academics/assessment-scheme?grade={}&term={}",
             app.address, grade.id, term.id
         ))
-        .bearer_auth(&token)
+        .bearer_auth(&app.test_user.token)
         .send()
         .await
         .expect("failed to send request");
@@ -75,18 +67,16 @@ async fn get_assessment_test() {
 #[actix::test]
 async fn get_assessment_return_empty_if_no_term() {
     let app = spawn_app().await;
-    mock_server(&app.message_server).await;
-    let token = app.get_token("1234567890", "admin").await;
-    let term = app.get_term(&token, "First Term").await;
-    let grade = app.get_grade(&token, "NURSERY").await;
-    let client = reqwest::Client::new();
+    let term = app.get_term(&app.test_user.token, "First Term").await;
+    let grade = app.get_grade(&app.test_user.token, "NURSERY").await;
 
-    let response = client
+    let response = app
+        .api_client
         .get(format!(
             "{}/academics/assessment-scheme?grade={}&term={}",
             app.address, grade.id, term.id
         ))
-        .bearer_auth(&token)
+        .bearer_auth(&app.test_user.token)
         .send()
         .await
         .expect("failed to send request");
