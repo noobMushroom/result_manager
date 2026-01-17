@@ -4,6 +4,21 @@ use serde::Deserialize;
 #[derive(Debug, Deserialize)]
 pub struct Username(String);
 
+pub fn captilize_first_letter(name: &str) -> String {
+    name.split_whitespace()
+        .map(|word| {
+            let mut chars = word.chars();
+            match chars.next() {
+                None => String::new(),
+                Some(first) => {
+                    first.to_uppercase().collect::<String>() + &chars.as_str().to_lowercase()
+                }
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
 impl Username {
     pub fn parse(s: &str) -> Result<Self, DomainError> {
         if s.trim().is_empty() {
@@ -14,7 +29,10 @@ impl Username {
         {
             return Err(DomainError::InvalidName);
         }
-        Ok(Self(s.to_string()))
+
+        let correctd = captilize_first_letter(s);
+
+        Ok(Self(correctd.to_string()))
     }
 }
 
@@ -30,13 +48,13 @@ mod tests {
     #[test]
     fn parse_correct_name() {
         let username = Username::parse("some").unwrap();
-        assert_eq!("some", username.as_ref());
+        assert_eq!("Some", username.as_ref());
     }
 
     #[test]
     fn parse_correct_name_long() {
         let username = Username::parse("long name").unwrap();
-        assert_eq!("long name", username.as_ref());
+        assert_eq!("Long Name", username.as_ref());
     }
 
     #[test]

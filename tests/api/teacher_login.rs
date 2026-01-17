@@ -56,7 +56,7 @@ pub async fn return_forbidden_if_user_for_banned() {
             VALUES($1, $2, $3)
         "#,
         phone,
-        Utc::now() + Duration::minutes(5),
+        Utc::now().checked_add_signed(Duration::minutes(20)),
         "Too many otp attempts"
     )
     .execute(&app.db_pool)

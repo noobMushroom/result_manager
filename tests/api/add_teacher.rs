@@ -45,7 +45,7 @@ pub async fn add_teacher_should_return_200_for_valid_data() {
             .await
             .expect("failed to fetch new subscription.");
 
-    assert_eq!(saved.name, name());
+    assert_eq!(saved.name, "Test Teacher");
     assert_eq!(saved.phone_no, phone());
     assert_eq!(saved.role, role());
 }

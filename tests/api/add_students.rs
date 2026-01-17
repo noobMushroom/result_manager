@@ -45,14 +45,33 @@ pub async fn register_student_returns_200_valid_data() {
 
     let grade_id = get_grade_id("LKG", &app.db_pool).await;
 
-    assert_eq!(saved.name, String::from("student"));
+    assert_eq!(saved.name, String::from("Student"));
     assert_eq!(
         saved.date_of_birth,
         NaiveDate::parse_from_str("12-12-2014", "%d-%m-%Y").unwrap()
     );
-    assert_eq!(saved.father_name, String::from("daddy"));
+    assert_eq!(saved.father_name, String::from("Daddy"));
     assert_eq!(saved.admission_no, 12);
     assert_eq!(saved.grade_id, grade_id);
+
+    assert_eq!(200, response.status().as_u16());
+}
+
+#[actix::test]
+pub async fn student_should_be_added_at_the_proper_case() {
+    let app = spawn_app().await;
+    let grade = "LKG";
+    let body = AddStudentdBody::new("student tEst", "12-12-2014", 12, "daddy", grade);
+    let response = app.add_student(&body, &app.test_user.token).await;
+
+    let saved = sqlx::query!(
+        "SELECT name, date_of_birth, admission_no, father_name, grade_id FROM students"
+    )
+    .fetch_one(&app.db_pool)
+    .await
+    .expect("failed to fetch new subscription.");
+
+    assert_eq!(saved.name, String::from("Student Test"));
 
     assert_eq!(200, response.status().as_u16());
 }
