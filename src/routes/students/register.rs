@@ -6,6 +6,7 @@ use uuid::Uuid;
 use crate::{
     domain::{errors::DomainError, grade::Grade, new_student::NewStudent, username::Username},
     errors::AppError,
+    routes::academics::Sections,
 };
 
 #[derive(serde::Deserialize)]
@@ -15,6 +16,7 @@ pub struct StudentData {
     pub admission_no: i32,
     pub father_name: String,
     pub grade: String,
+    pub section: Option<Sections>,
 }
 
 impl TryFrom<StudentData> for NewStudent {
@@ -32,6 +34,7 @@ impl TryFrom<StudentData> for NewStudent {
             father_name,
             grade,
             date_of_birth,
+            section: value.section,
         })
     }
 }
@@ -62,8 +65,8 @@ pub async fn insert_student(pool: &PgPool, student: &NewStudent) -> Result<(), D
     let grade = get_grade_uuid(pool, student.grade.as_ref()).await?;
     match sqlx::query!(
         r#"
-            INSERT INTO students (id, grade_id, name, father_name, admission_no, date_of_birth)
-            VALUES ($1, $2, $3, $4, $5, $6)
+            INSERT INTO students (id, grade_id, name, father_name, admission_no, date_of_birth, section)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
         "#,
         Uuid::new_v4(),
         grade,
@@ -71,6 +74,7 @@ pub async fn insert_student(pool: &PgPool, student: &NewStudent) -> Result<(), D
         student.father_name.as_ref(),
         student.adm_no,
         student.date_of_birth,
+        student.section.as_ref().map(|s| s.as_ref()),
     )
     .execute(pool)
     .await

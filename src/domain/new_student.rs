@@ -1,5 +1,6 @@
 use crate::domain::grade::Grade;
 use crate::domain::username::Username;
+use crate::routes::academics::Sections;
 use chrono::NaiveDate;
 
 pub struct NewStudent {
@@ -8,4 +9,5 @@ pub struct NewStudent {
     pub grade: Grade,
     pub date_of_birth: NaiveDate,
     pub adm_no: i32,
+    pub section: Option<Sections>,
 }

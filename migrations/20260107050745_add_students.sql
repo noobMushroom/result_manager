@@ -11,5 +11,7 @@ CREATE TABLE students (
 
     date_of_birth DATE NOT NULL,
 
+    section TEXT NULL,
+
     FOREIGN KEY (grade_id) REFERENCES grades(id)
 );

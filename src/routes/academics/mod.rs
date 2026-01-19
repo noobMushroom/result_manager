@@ -20,6 +20,39 @@ pub enum ExamTypes {
     ANNUAL,
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
+pub enum Sections {
+    A,
+    B,
+    C,
+    D,
+}
+
+impl AsRef<str> for Sections {
+    fn as_ref(&self) -> &str {
+        match self {
+            Self::A => "A",
+            Self::B => "B",
+            Self::C => "C",
+            Self::D => "D",
+        }
+    }
+}
+
+impl TryFrom<&str> for Sections {
+    type Error = DomainError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value.to_uppercase().as_str() {
+            "A" => Ok(Sections::A),
+            "B" => Ok(Sections::B),
+            "C" => Ok(Sections::C),
+            "D" => Ok(Sections::D),
+            _ => Err(DomainError::BadRequest("Invalid section".into())),
+        }
+    }
+}
+
 impl TryFrom<&str> for ExamTypes {
     type Error = DomainError;
 
