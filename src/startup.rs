@@ -2,6 +2,7 @@ use crate::auth::middleware::{jwt_middleware, jwt_middleware_teacher};
 use crate::configuration::{DatabaseSettings, Settings};
 use crate::message_client::MessageClient;
 use crate::routes::academics::get_assesment::get_assessment_scheme;
+use crate::routes::academics::get_exam_types::get_exam_types;
 use crate::routes::academics::get_grades::get_grades;
 use crate::routes::academics::get_terms::get_terms;
 use crate::routes::health_check::health;
@@ -78,7 +79,7 @@ pub fn run(
         App::new()
             .wrap(TracingLogger::default())
             .service(
-                web::scope("/result")
+                web::scope("/results")
                     .wrap(from_fn(jwt_middleware))
                     .service(add_result),
             )
@@ -87,6 +88,7 @@ pub fn run(
                     .wrap(from_fn(jwt_middleware))
                     .service(get_grades)
                     .service(get_terms)
+                    .service(get_exam_types)
                     .service(get_assessment_scheme),
             )
             .service(

@@ -29,6 +29,9 @@ pub enum DomainError {
     #[error("Invalid Role")]
     InvalidRole,
 
+    #[error("Invalid Status")]
+    InvalidStatus,
+
     #[error("Unauthorised")]
     Unauthorised,
 

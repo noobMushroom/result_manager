@@ -1,23 +1,49 @@
-use crate::errors::AppError;
+use std::fmt;
+
+use crate::{domain::errors::DomainError, errors::AppError};
 use actix_web::{HttpResponse, get, web};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
 
+#[derive(Serialize, Deserialize, Debug)]
 pub enum EvaluationType {
     Marks,
     Grade,
 }
 
-impl TryFrom<String> for EvaluationType {
-    type Error = AppError;
+impl TryFrom<&str> for EvaluationType {
+    type Error = DomainError;
 
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        match value.as_str() {
-            "MARKS" => Ok(EvaluationType::Marks),
-            "GRADE" => Ok(EvaluationType::Grade),
-            _ => Err(AppError::BadRequest("invalid evaluation type".to_string())),
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value.to_lowercase().as_str() {
+            "MARKS" => Ok(Self::Marks),
+            "GRADE" => Ok(Self::Grade),
+            _ => Err(DomainError::BadRequest(
+                "Invalid Evalution Type".to_string(),
+            )),
         }
+    }
+}
+
+impl From<String> for EvaluationType {
+    fn from(value: String) -> Self {
+        match value.to_uppercase().as_str() {
+            "MARKS" => Self::Marks,
+            "GRADE" => Self::Grade,
+            _ => Self::Marks,
+        }
+    }
+}
+
+impl fmt::Display for EvaluationType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            Self::Marks => "MARKS",
+            Self::Grade => "Grade",
+        };
+
+        write!(f, "{s}")
     }
 }
 
@@ -44,7 +70,7 @@ pub struct AssessmentResponse {
     pub exam_type_id: Uuid,
     pub exam_type_code: String,
 
-    pub evaluation_type: String,
+    pub evaluation_type: EvaluationType,
     pub max_marks: Option<i32>,
 }
 

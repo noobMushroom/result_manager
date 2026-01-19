@@ -2,15 +2,16 @@ use crate::add_students::AddStudentdBody;
 use crate::add_teacher::AddTeacherBody;
 use crate::otp::VerifyOtpBody;
 use crate::teacher_login::LoginReqBody;
-use chrono::{Duration, Utc};
+use chrono::{Duration, NaiveDate, Utc};
 use once_cell::sync::Lazy;
 use reqwest::Response;
 use result_management::auth::jwt::generate_jwt;
 use result_management::configuration::{DatabaseSettings, get_configuration};
 use result_management::domain::roles::Role;
+use result_management::routes::academics::get_assesment::{AssessmentBody, AssessmentResponse};
 use result_management::routes::academics::get_grades::GradeBodyResponse;
 use result_management::routes::academics::get_terms::TermsResponse;
-// use result_management::routes::result::add_result::AddMarksData;
+use result_management::routes::result::add_result::AddMarksData;
 use result_management::routes::students::get_student::SearchStudentsQuery;
 use result_management::startup::{Application, get_connection_pool};
 use result_management::telemetry::{get_subscriber, init_subscriber};
@@ -101,6 +102,21 @@ impl TestApp {
             .expect("failed to execute request.")
     }
 
+    pub async fn get_assesment_scheme(&self, body: &AssessmentBody) -> Vec<AssessmentResponse> {
+        let response = self
+            .api_client
+            .get(format!(
+                "{}/academics/assessment-scheme?grade={}&term={}",
+                self.address, body.grade, body.term
+            ))
+            .bearer_auth(&self.test_user.token)
+            .send()
+            .await
+            .expect("failed to send request");
+
+        response.json::<Vec<_>>().await.expect("failed to convert")
+    }
+
     pub async fn get_students(&self, grade: &str, token: &str) -> Response {
         self.api_client
             .get(format!("{}/student/get_students/{}", &self.address, &grade))
@@ -165,17 +181,16 @@ impl TestApp {
         item.into_iter().find(|v| v.name == grade).unwrap()
     }
 
-    // pub async fn send_add_marks_request(&self, body: &AddMarksData, token: &str) -> Response {
-    //     let client = reqwest::Client::new();
-    //     client
-    //         .post(format!("{}/result/add_marks", &self.address))
-    //         .bearer_auth(token)
-    //         .header("content-type", "application/json")
-    //         .json(body)
-    //         .send()
-    //         .await
-    //         .expect("failed to execute request.")
-    // }
+    pub async fn send_add_marks_request(&self, body: &AddMarksData, token: &str) -> Response {
+        self.api_client
+            .post(format!("{}/results/add_marks", &self.address))
+            .bearer_auth(token)
+            .header("content-type", "application/json")
+            .json(body)
+            .send()
+            .await
+            .expect("failed to execute request.")
+    }
 
     pub async fn send_add_teacher_req(&self, body: &AddTeacherBody, token: &str) -> Response {
         self.api_client
@@ -237,6 +252,27 @@ impl TestApp {
         .execute(&self.db_pool)
         .await
         .expect("failed to execute query");
+    }
+
+    pub async fn add_student_to_db(&self, student: &AddStudentdBody, grade: Uuid) -> Uuid {
+        let uuid = Uuid::new_v4();
+        let date = NaiveDate::parse_from_str(&student.date_of_birth, "%d-%m-%Y").unwrap();
+        sqlx::query!(
+            r#"
+            INSERT INTO students (id, grade_id, name, father_name, admission_no, date_of_birth)
+            VALUES ($1, $2, $3, $4, $5, $6)
+        "#,
+            uuid,
+            grade,
+            student.name,
+            student.father_name,
+            student.admission_no,
+            date
+        )
+        .execute(&self.db_pool)
+        .await
+        .expect("failed to execute query");
+        uuid
     }
 
     pub async fn rewind_latest_otp_created_at(&self, phone: &str) {
@@ -310,7 +346,7 @@ pub async fn spawn_app() -> TestApp {
     Lazy::force(&TRACING);
     let message_server = MockServer::start().await;
     let api_client = reqwest::Client::builder()
-        .redirect(reqwest::redirect::Policy::none())
+        .pool_max_idle_per_host(5)
         .build()
         .expect("failed to build api client");
 

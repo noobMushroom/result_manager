@@ -2,7 +2,6 @@ use crate::helpers::spawn_app;
 use result_management::routes::academics::{
     get_assesment::AssessmentResponse, get_grades::GradeBodyResponse, get_terms::TermsResponse,
 };
-use uuid::Uuid;
 
 #[actix::test]
 async fn get_all_grades() {
@@ -68,15 +67,14 @@ async fn get_assessment_test() {
 #[actix::test]
 async fn get_assessment_return_empty_if_no_term() {
     let app = spawn_app().await;
-    let grade = app.get_grade(&app.test_user.token, "LKG").await;
+    let term = app.get_term(&app.test_user.token, "First Term").await;
 
+    let grade = app.get_grade(&app.test_user.token, "LKG").await;
     let response = app
         .api_client
         .get(format!(
             "{}/academics/assessment-scheme?grade={}&term={}",
-            app.address,
-            grade.id,
-            Uuid::new_v4()
+            app.address, grade.id, term.id
         ))
         .bearer_auth(&app.test_user.token)
         .send()

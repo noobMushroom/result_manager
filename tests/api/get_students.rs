@@ -86,7 +86,7 @@ async fn return_error_if_invalid_name() {
     assert_eq!(response.status().as_u16(), 400);
 }
 
-fn get_search_query_body(
+pub fn get_search_query_body(
     grade_id: Option<Uuid>,
     q: Option<String>,
     admission_no: Option<i32>,

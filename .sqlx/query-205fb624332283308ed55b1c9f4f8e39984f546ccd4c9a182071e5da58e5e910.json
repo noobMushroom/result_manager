@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    INSERT INTO results (\n                        student_id,\n                        assessment_id,\n                        marks_obtained,\n                        grade,\n                        result_status\n                    )\n                    VALUES ($1, $2, $3, $4, 'PRESENT')\n                    ON CONFLICT (student_id, assessment_id)\n                    DO UPDATE SET\n                        marks_obtained = EXCLUDED.marks_obtained,\n                        grade = EXCLUDED.grade,\n                        result_status = 'PRESENT',\n                        updated_at = now()\n                    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int4",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "205fb624332283308ed55b1c9f4f8e39984f546ccd4c9a182071e5da58e5e910"
+}

@@ -105,7 +105,7 @@ FROM exam_types et, terms t
 WHERE et.code = 'CLASS_PER' AND t.name = 'Half Yearly Term';
 
 INSERT INTO exams (exam_type_id, term_id, display_name)
-SELECT et.id, t.id, 'Copy Work'
+SELECT et.id, t.id, 'Class Per'
 FROM exam_types et, terms t
 WHERE et.code = 'CLASS_PER' AND t.name = 'Second Term';
 

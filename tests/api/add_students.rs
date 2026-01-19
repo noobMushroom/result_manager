@@ -6,7 +6,7 @@ use serde_json::Value;
 pub struct AddStudentdBody {
     pub name: String,
     pub date_of_birth: String,
-    pub admission_no: u16,
+    pub admission_no: i32,
     pub father_name: String,
     pub grade: String,
 }
@@ -15,7 +15,7 @@ impl AddStudentdBody {
     pub fn new(
         name: &str,
         date_of_birth: &str,
-        admission_no: u16,
+        admission_no: i32,
         father_name: &str,
         grade: &str,
     ) -> Self {

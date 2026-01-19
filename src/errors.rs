@@ -42,7 +42,8 @@ impl From<DomainError> for AppError {
             | DomainError::InvalidGrade
             | DomainError::InvalidDateOfBirth
             | DomainError::InvalidRole
-            | DomainError::UserNotFound => AppError::BadRequest(err.to_string()),
+            | DomainError::UserNotFound
+            | DomainError::InvalidStatus => AppError::BadRequest(err.to_string()),
             DomainError::BadRequest(msg) => AppError::BadRequest(msg.to_string()),
 
             DomainError::DuplicateAdmissionNo | DomainError::DuplicatePhoneNo => {
