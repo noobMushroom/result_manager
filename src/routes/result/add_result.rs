@@ -71,10 +71,24 @@ pub struct MarksBody {
 
 impl MarksBody {
     pub fn validate(&self) -> Result<(), DomainError> {
-        if self.marks.is_some() && self.grade.is_some() {
-            return Err(DomainError::BadRequest(
-                "Both marks and grade present".to_string(),
-            ));
+        let status = self.status.clone().unwrap_or(Status::PRESENT);
+
+        match status {
+            Status::PRESENT => {
+                if self.marks.is_some() && self.grade.is_some() {
+                    return Err(DomainError::BadRequest(
+                        "Both marks and grade provided".into(),
+                    ));
+                }
+            }
+
+            Status::MEDICAL | Status::ABSENT => {
+                if self.marks.is_some() || self.grade.is_some() {
+                    return Err(DomainError::BadRequest(
+                        "Marks/grade not allowed for ABSENT or MEDICAL".into(),
+                    ));
+                }
+            }
         }
 
         Ok(())

@@ -1,6 +1,6 @@
 use result_management::routes::{
     academics::get_assesment::{AssessmentBody, AssessmentResponse},
-    result::add_result::{AddMarksData, MarksBody},
+    result::add_result::{AddMarksData, MarksBody, Status},
 };
 use uuid::Uuid;
 
@@ -125,7 +125,7 @@ async fn return_bad_request_if_both_grade_and_marks_added() {
 }
 
 #[actix::test]
-async fn sending_null_null_deletest_the_result() {
+async fn sending_null_null_delete_the_result() {
     let app = spawn_app().await;
 
     let grade = app.get_grade(&app.test_user.token, "8").await;
@@ -237,4 +237,161 @@ async fn resending_the_data_should_update_marks() {
 
     assert_eq!(saved.student_id, student);
     assert_eq!(saved.marks_obtained, Some(30));
+}
+
+#[actix::test]
+async fn sending_absent_should_keep_absent() {
+    let app = spawn_app().await;
+
+    let grade = app.get_grade(&app.test_user.token, "8").await;
+    let term = app.get_term(&app.test_user.token, "Second Term").await;
+    let assessment_body = get_assessment_body(term.id, grade.id);
+    let assesment_scheme = app.get_assesment_scheme(&assessment_body).await;
+    let student_body = AddStudentdBody::new(
+        "Raj     KumaRR",
+        "12-12-2002",
+        333,
+        "Kamal Hasan",
+        &grade.name,
+    );
+    let student = app.add_student_to_db(&student_body, grade.id).await;
+    let subject_input_body = [("MATHS", None, None, "ANNUAL")];
+    let subject_input = get_subject_body(&subject_input_body);
+    let mut body = get_json_body(&assesment_scheme, student, &subject_input);
+
+    body.marks[0].status = Some(Status::ABSENT);
+
+    let response = app
+        .send_add_marks_request(&body, &app.test_user.token)
+        .await;
+
+    assert_eq!(response.status().as_u16(), 200);
+
+    let saved = sqlx::query!(
+        "SELECT id, student_id, assessment_id, marks_obtained, grade,  result_status   FROM results"
+    )
+    .fetch_one(&app.db_pool)
+    .await
+    .expect("failed to fetch new subscription.");
+
+    assert_eq!(saved.result_status, "ABSENT");
+    assert_eq!(saved.marks_obtained, None);
+    assert_eq!(saved.grade, None);
+}
+
+#[actix::test]
+async fn sending_absent_with_marks_return_error() {
+    let app = spawn_app().await;
+
+    let grade = app.get_grade(&app.test_user.token, "8").await;
+    let term = app.get_term(&app.test_user.token, "Second Term").await;
+    let assessment_body = get_assessment_body(term.id, grade.id);
+    let assesment_scheme = app.get_assesment_scheme(&assessment_body).await;
+    let student_body = AddStudentdBody::new(
+        "Raj     KumaRR",
+        "12-12-2002",
+        333,
+        "Kamal Hasan",
+        &grade.name,
+    );
+    let student = app.add_student_to_db(&student_body, grade.id).await;
+    let subject_input_body = [("MATHS", Some(10), None, "ANNUAL")];
+    let subject_input = get_subject_body(&subject_input_body);
+    let mut body = get_json_body(&assesment_scheme, student, &subject_input);
+
+    body.marks[0].status = Some(Status::ABSENT);
+
+    let response = app
+        .send_add_marks_request(&body, &app.test_user.token)
+        .await;
+
+    assert_eq!(response.status().as_u16(), 400);
+}
+
+#[actix::test]
+async fn sending_absent_with_grades_return_error() {
+    let app = spawn_app().await;
+
+    let grade = app.get_grade(&app.test_user.token, "8").await;
+    let term = app.get_term(&app.test_user.token, "Second Term").await;
+    let assessment_body = get_assessment_body(term.id, grade.id);
+    let assesment_scheme = app.get_assesment_scheme(&assessment_body).await;
+    let student_body = AddStudentdBody::new(
+        "Raj     KumaRR",
+        "12-12-2002",
+        333,
+        "Kamal Hasan",
+        &grade.name,
+    );
+    let student = app.add_student_to_db(&student_body, grade.id).await;
+    let subject_input_body = [("MATHS", None, Some("B".to_string()), "ANNUAL")];
+    let subject_input = get_subject_body(&subject_input_body);
+    let mut body = get_json_body(&assesment_scheme, student, &subject_input);
+
+    body.marks[0].status = Some(Status::ABSENT);
+
+    let response = app
+        .send_add_marks_request(&body, &app.test_user.token)
+        .await;
+
+    assert_eq!(response.status().as_u16(), 400);
+}
+
+#[actix::test]
+async fn resending_absent_should_update() {
+    let app = spawn_app().await;
+
+    let grade = app.get_grade(&app.test_user.token, "8").await;
+    let term = app.get_term(&app.test_user.token, "Second Term").await;
+    let assessment_body = get_assessment_body(term.id, grade.id);
+    let assesment_scheme = app.get_assesment_scheme(&assessment_body).await;
+    let student_body = AddStudentdBody::new(
+        "Raj     KumaRR",
+        "12-12-2002",
+        333,
+        "Kamal Hasan",
+        &grade.name,
+    );
+    let student = app.add_student_to_db(&student_body, grade.id).await;
+
+    let subject_input_body = [("MATHS", Some(50), None, "ANNUAL")];
+
+    let subject_input = get_subject_body(&subject_input_body);
+
+    let mut body = get_json_body(&assesment_scheme, student, &subject_input);
+    let response = app
+        .send_add_marks_request(&body, &app.test_user.token)
+        .await;
+
+    assert_eq!(response.status().as_u16(), 200);
+
+    let saved =
+        sqlx::query!("SELECT id, student_id, assessment_id, marks_obtained, grade  FROM results")
+            .fetch_one(&app.db_pool)
+            .await
+            .expect("failed to fetch new subscription.");
+
+    assert_eq!(saved.student_id, student);
+    assert_eq!(saved.marks_obtained, Some(50));
+
+    body.marks[0].marks = None;
+    body.marks[0].grade = None;
+    body.marks[0].status = Some(Status::ABSENT);
+
+    let response = app
+        .send_add_marks_request(&body, &app.test_user.token)
+        .await;
+
+    assert_eq!(response.status().as_u16(), 200);
+
+    let saved = sqlx::query!(
+        "SELECT id, student_id, assessment_id, marks_obtained, result_status, grade  FROM results"
+    )
+    .fetch_one(&app.db_pool)
+    .await
+    .expect("failed to fetch new subscription.");
+
+    assert_eq!(saved.result_status, "ABSENT");
+    assert_eq!(saved.marks_obtained, None);
+    assert_eq!(saved.grade, None);
 }
