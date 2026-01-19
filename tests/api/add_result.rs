@@ -216,9 +216,9 @@ async fn resending_the_data_should_update_marks() {
             .expect("failed to fetch new subscription.");
 
     assert_eq!(saved.student_id, student);
-    assert_eq!(saved.marks_obtained, Some(30));
+    assert_eq!(saved.marks_obtained, Some(50));
 
-    let subject_input_body = [("MATHS", None, None, "ANNUAL")];
+    let subject_input_body = [("MATHS", Some(30), None, "ANNUAL")];
 
     let subject_input = get_subject_body(&subject_input_body);
 

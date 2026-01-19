@@ -16,7 +16,7 @@ impl TryFrom<&str> for EvaluationType {
     type Error = DomainError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        match value.to_lowercase().as_str() {
+        match value.to_uppercase().as_str() {
             "MARKS" => Ok(Self::Marks),
             "GRADE" => Ok(Self::Grade),
             _ => Err(DomainError::BadRequest(
