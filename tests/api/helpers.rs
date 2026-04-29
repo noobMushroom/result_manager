@@ -2,12 +2,19 @@ use crate::add_students::AddStudentdBody;
 use crate::add_teacher::AddTeacherBody;
 use crate::otp::VerifyOtpBody;
 use crate::teacher_login::LoginReqBody;
-use chrono::{Duration, NaiveDate, Utc};
+use chrono::{NaiveDate, Utc};
+use fake::Fake;
+use fake::faker::name::raw::Name;
+use fake::locales::EN;
 use once_cell::sync::Lazy;
+use rand::Rng;
+use redis::AsyncCommands;
 use reqwest::Response;
 use result_management::auth::jwt::generate_jwt;
 use result_management::configuration::{DatabaseSettings, get_configuration};
 use result_management::domain::roles::Role;
+use result_management::redis::repo::RedisRepo;
+use result_management::redis::utils::OtpTimers;
 use result_management::routes::academics::get_assesment::{AssessmentBody, AssessmentResponse};
 use result_management::routes::academics::get_grades::GradeBodyResponse;
 use result_management::routes::academics::get_terms::TermsResponse;
@@ -49,10 +56,14 @@ impl TestUser {
         Self {
             id,
             role: "admin".to_string(),
-            name: String::from("Test User"),
-            phone: String::from("1234567890"),
+            name: Name(EN).fake(),
+            phone: generate_phone(),
             token,
         }
+    }
+
+    pub fn get_phone(&self) -> &str {
+        &self.phone
     }
 
     pub async fn store(&self, pool: &PgPool) {
@@ -73,10 +84,17 @@ impl TestUser {
     }
 }
 
+pub fn generate_phone() -> String {
+    (0..10)
+        .map(|_| char::from(b'0' + rand::rng().random_range(0..10) as u8))
+        .collect()
+}
+
 pub struct TestApp {
     pub address: String,
     pub db_pool: PgPool,
     pub message_server: MockServer,
+    pub redis: RedisRepo,
     pub api_client: reqwest::Client,
     pub test_user: TestUser,
 }
@@ -210,12 +228,6 @@ impl TestApp {
             .expect("Failed to get student")
     }
 
-    pub async fn get_row_count_otp(&self) -> Option<i64> {
-        sqlx::query_scalar!("SELECT COUNT(*) as count FROM otp_requests")
-            .fetch_one(&self.db_pool)
-            .await
-            .expect("Failed to get otp row")
-    }
 
     pub async fn send_login_req(&self, body: &LoginReqBody) -> Response {
         self.api_client
@@ -275,44 +287,28 @@ impl TestApp {
         uuid
     }
 
-    pub async fn rewind_latest_otp_created_at(&self, phone: &str) {
-        let duration = Utc::now().checked_sub_signed(Duration::seconds(32));
-        sqlx::query!(
-            r#"
-        UPDATE otp_requests
-        SET created_at = $2
-        WHERE id = (
-            SELECT id
-            FROM otp_requests
-            WHERE phone_number = $1
-            ORDER BY created_at DESC, id DESC
-            LIMIT 1
-        )
-        "#,
-            phone,
-            duration
-        )
-        .execute(&self.db_pool)
-        .await
-        .expect("failed to change created at time");
+    pub async fn expire_cooldown_time(&self, phone: &str) {
+        let key = OtpTimers::OtpCooldown(phone).key();
+        let mut con = self.redis.con.clone();
+        let _: () = con.expire(&key, -1).await.unwrap();
     }
 
     pub async fn get_otp_attempts(&self, phone: &str) -> i32 {
-        let otp = sqlx::query!(
-            r#"
-        SELECT attempts
-        FROM otp_requests
-        WHERE phone_number = $1
-          AND expires_at > NOW()
-        ORDER BY created_at DESC
-        LIMIT 1
-        "#,
-            phone
-        )
-        .fetch_one(&self.db_pool)
-        .await
-        .expect("failed to get otp");
-        otp.attempts
+        let mut con = self.redis.con.clone();
+        let key = OtpTimers::OtpAttempts(phone).key();
+
+        let otp_requests: Option<i32> = con.get(&key).await.unwrap();
+
+        otp_requests.unwrap_or(0)
+    }
+
+    pub async fn get_otp_requests(&self, phone: &str) -> i32 {
+        let mut con = self.redis.con.clone();
+        let key = OtpTimers::OtpRequests(phone).key();
+
+        let otp_requests: Option<i32> = con.get(&key).await.unwrap();
+
+        otp_requests.unwrap_or(0)
     }
 
     pub async fn request_otp_and_extract(&self, phone: &str) -> String {
@@ -355,11 +351,15 @@ pub async fn spawn_app() -> TestApp {
         c.database.database_name = Uuid::new_v4().to_string();
         c.application.port = 0;
         c.message_client.base_url = message_server.uri();
+        c.redis.database_index = 5;
         c
     };
 
-    configure_database(&configuration.database).await;
+    let redis = RedisRepo::new(&configuration.redis.connection_string())
+        .await
+        .unwrap();
 
+    configure_database(&configuration.database).await;
     let server = Application::build(configuration.clone())
         .await
         .expect("failed to build application");
@@ -375,11 +375,13 @@ pub async fn spawn_app() -> TestApp {
     TestApp {
         address,
         db_pool,
+        redis,
         message_server,
         api_client,
         test_user,
     }
 }
+
 pub async fn configure_database(config: &DatabaseSettings) -> PgPool {
     let mut connection = PgConnection::connect_with(&config.without_db())
         .await

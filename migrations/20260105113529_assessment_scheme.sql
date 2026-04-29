@@ -286,7 +286,7 @@ JOIN terms t ON e.term_id = t.id
 JOIN subjects s ON true
 WHERE g.name = '1'
   AND et.code = 'UT'
-  AND t.name IN ('First Term')
+  AND t.name IN ('Half Yearly Term')
   AND s.code IN ('ENG_LIT', 'ENG_LANG', 'HIN', 'MATHS', 'SST', 'EVS', 'COMP', 'GK');
 
 -- Unit test 1 grade exams
@@ -299,7 +299,7 @@ JOIN terms t ON e.term_id = t.id
 JOIN subjects s ON true
 WHERE g.name = '1'
   AND et.code = 'UT'
-  AND t.name IN ('First Term')
+  AND t.name IN ('Half Yearly Term')
   AND s.code IN ('DRAW');
 
 
@@ -381,7 +381,7 @@ JOIN terms t ON e.term_id = t.id
 JOIN subjects s ON true
 WHERE g.name = '1'
   AND et.code = 'UT'
-  AND t.name IN ('Second Term')
+  AND t.name IN ('Annual Term')
   AND s.code IN ('ENG_LIT', 'ENG_LANG', 'HIN', 'MATHS', 'SST', 'EVS', 'COMP', 'GK');
 
 -- Unit test 2 grade exams
@@ -394,7 +394,7 @@ JOIN terms t ON e.term_id = t.id
 JOIN subjects s ON true
 WHERE g.name = '1'
   AND et.code = 'UT'
-  AND t.name IN ('Second Term')
+  AND t.name IN ('Annual Term')
   AND s.code IN ('DRAW');
 
 
@@ -477,7 +477,7 @@ JOIN terms t ON e.term_id = t.id
 JOIN subjects s ON true
 WHERE g.name = '2'
   AND et.code = 'UT'
-  AND t.name IN ('First Term')
+  AND t.name IN ('Half Yearly Term')
   AND s.code IN ('ENG_LIT', 'ENG_LANG', 'HIN', 'MATHS', 'SST', 'EVS', 'COMP', 'GK');
 
 -- Unit test 2 grade exams
@@ -490,7 +490,7 @@ JOIN terms t ON e.term_id = t.id
 JOIN subjects s ON true
 WHERE g.name = '2'
   AND et.code = 'UT'
-  AND t.name IN ('First Term')
+  AND t.name IN ('Half Yearly Term')
   AND s.code IN ('DRAW');
 
 
@@ -571,7 +571,7 @@ JOIN terms t ON e.term_id = t.id
 JOIN subjects s ON true
 WHERE g.name = '2'
   AND et.code = 'UT'
-  AND t.name IN ('Second Term')
+  AND t.name IN ('Annual Term')
   AND s.code IN ('ENG_LIT', 'ENG_LANG', 'HIN', 'MATHS', 'SST', 'EVS', 'COMP', 'GK');
 
 -- Unit test 2 grade exams
@@ -584,7 +584,7 @@ JOIN terms t ON e.term_id = t.id
 JOIN subjects s ON true
 WHERE g.name = '2'
   AND et.code = 'UT'
-  AND t.name IN ('Second Term')
+  AND t.name IN ('Annual Term')
   AND s.code IN ('DRAW');
 
 

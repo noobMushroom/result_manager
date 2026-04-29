@@ -1,4 +1,4 @@
-use crate::domain::errors::DomainError;
+use crate::{domain::errors::DomainError, otp::error::OtpErrors};
 use actix_web::{
     HttpResponse, ResponseError,
     http::{StatusCode, header::ContentType},
@@ -32,6 +32,14 @@ pub enum AppError {
 #[derive(serde::Serialize)]
 pub struct ErrorResponse<'a> {
     pub error: &'a str,
+}
+
+impl From<OtpErrors> for AppError {
+    fn from(value: OtpErrors) -> Self {
+        match value {
+            OtpErrors::OtpExpiredOrNotFound(err) => AppError::BadRequest(err),
+        }
+    }
 }
 
 impl From<DomainError> for AppError {

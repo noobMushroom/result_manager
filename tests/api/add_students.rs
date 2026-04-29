@@ -1,5 +1,6 @@
 use crate::helpers::{get_grade_id, spawn_app};
 use chrono::NaiveDate;
+use result_management::routes::academics::Sections;
 use serde_json::Value;
 
 #[derive(serde::Serialize)]
@@ -9,6 +10,7 @@ pub struct AddStudentdBody {
     pub admission_no: i32,
     pub father_name: String,
     pub grade: String,
+    pub section: Option<Sections>,
 }
 
 impl AddStudentdBody {
@@ -25,6 +27,7 @@ impl AddStudentdBody {
             admission_no,
             father_name: father_name.to_string(),
             grade: grade.to_string(),
+            section: None,
         }
     }
 }

@@ -42,7 +42,7 @@ pub async fn get_grade_info(
         FROM grades
         WHERE name=$1
         "#,
-        grade_name
+        grade_name.to_uppercase()
     )
     .fetch_optional(pool)
     .await

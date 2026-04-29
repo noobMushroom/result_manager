@@ -5,7 +5,6 @@ use serde::Deserialize;
 pub struct Phone(String);
 
 impl Phone {
-    #[allow(dead_code)]
     pub fn parse(s: &str) -> Result<Self, DomainError> {
         if s.trim().is_empty() {
             return Err(DomainError::InvalidPhone);

@@ -1,47 +1,40 @@
-use actix_web::{HttpResponse, post, web};
+use actix_web::{HttpResponse, Result, post, web};
 use sqlx::PgPool;
 
 use crate::{
     domain::{errors::DomainError, phone::Phone},
     errors::AppError,
     message_client::MessageClient,
-    routes::users::{
-        moderate::ensure_not_banned,
-        otp::{generate_otp, insert_otp},
-    },
+    otp::service::send_otp,
+    redis::repo::RedisRepo,
 };
 
 #[derive(serde::Deserialize)]
 pub struct UserDetails {
-    pub phone: String,
+    pub phone: Phone,
 }
 
 #[tracing::instrument(
-    name = "adding a new student",
-    skip(user, pool, message_client),
+    name = "Log in: Checking the credentials and sending otp",
+    skip(user, pool, message_client, redis),
     fields(
-        name = %user.phone,
+        name = %user.phone.as_ref(),
     )
 )]
 #[post("/login")]
 pub async fn teacher_login(
     user: web::Json<UserDetails>,
     pool: web::Data<PgPool>,
+    redis: web::Data<RedisRepo>,
     message_client: web::Data<MessageClient>,
 ) -> Result<HttpResponse, AppError> {
-    let phone = Phone::parse(&user.phone)?;
-    if check_user(&phone, &pool).await.is_err() {
+    // let phone = Phone::parse(&user.phone)?;
+    if check_user(&user.phone, &pool).await.is_err() {
         return Ok(HttpResponse::Ok().json(serde_json::json!({
             "message": "If the number is registered, an OTP has been sent"
         })));
     }
-    ensure_not_banned(&pool, &phone).await?;
-    let otp = generate_otp();
-    insert_otp(&pool, &phone, &otp).await?;
-    message_client.send_otp(otp, &phone).await.map_err(|e| {
-        tracing::error!(error=?e, "error while sending otp");
-        DomainError::Internal
-    })?;
+    send_otp(&redis, &message_client, &user.phone).await?;
 
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "message": "If the number is registered, an OTP has been sent"

@@ -97,6 +97,7 @@ pub fn get_search_query_body(
         admission_no,
         limit: None,
         offset: None,
+        section: None,
     }
 }
 

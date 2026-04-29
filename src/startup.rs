@@ -1,6 +1,8 @@
 use crate::auth::middleware::{jwt_middleware, jwt_middleware_teacher};
 use crate::configuration::{DatabaseSettings, Settings};
 use crate::message_client::MessageClient;
+use crate::otp::service::verify_otp;
+use crate::redis::repo::RedisRepo;
 use crate::routes::academics::get_assesment::get_assessment_scheme;
 use crate::routes::academics::get_exam_types::get_exam_types;
 use crate::routes::academics::get_grades::get_grades;
@@ -10,7 +12,6 @@ use crate::routes::result::add_result::add_result;
 use crate::routes::students::get_student::{get_students, seach_students};
 use crate::routes::students::register::register_student;
 use crate::routes::users::login::teacher_login;
-use crate::routes::users::otp::verify_user_otp;
 use crate::routes::users::register::add_teacher;
 use actix_web::dev::Server;
 use actix_web::middleware::from_fn;
@@ -34,6 +35,8 @@ impl Application {
             configuration.application.host, configuration.application.port
         );
 
+        let redis_connection = RedisRepo::new(&configuration.redis.connection_string()).await?;
+
         let message_client = MessageClient::new(
             configuration.message_client.timeout(),
             configuration.message_client.base_url,
@@ -45,6 +48,7 @@ impl Application {
         let server = run(
             listener,
             connection_pool,
+            redis_connection,
             message_client,
             configuration.jwt.secret_token(),
         )?;
@@ -66,15 +70,18 @@ pub fn get_connection_pool(configuration: &DatabaseSettings) -> PgPool {
         .acquire_timeout(std::time::Duration::from_secs(10))
         .connect_lazy_with(configuration.with_db())
 }
+
 pub fn run(
     listen: TcpListener,
     db_pool: PgPool,
+    redis: RedisRepo,
     message_client: MessageClient,
     jwt_secret: SecretString,
 ) -> Result<Server, std::io::Error> {
     let connection = web::Data::new(db_pool);
     let message_client = web::Data::new(message_client);
     let jwt_secret = web::Data::new(jwt_secret);
+    let redis_connection = web::Data::new(redis);
     let server = HttpServer::new(move || {
         App::new()
             .wrap(TracingLogger::default())
@@ -99,7 +106,7 @@ pub fn run(
             .service(
                 web::scope("/auth")
                     .service(teacher_login)
-                    .service(verify_user_otp),
+                    .service(verify_otp),
             )
             .service(
                 web::scope("/student")
@@ -110,6 +117,7 @@ pub fn run(
             )
             .service(health)
             .app_data(connection.clone())
+            .app_data(redis_connection.clone())
             .app_data(jwt_secret.clone())
             .app_data(message_client.clone())
     })

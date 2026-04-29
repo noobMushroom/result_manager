@@ -7,6 +7,7 @@ use argon2::{
 use argon2::password_hash::{PasswordHasher, SaltString};
 use chrono::{DateTime, Duration, Utc};
 use rand::{Rng, rng};
+use redis::aio::ConnectionManager;
 use secrecy::{ExposeSecret, SecretString};
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -15,7 +16,6 @@ use crate::{
     auth::jwt::generate_jwt,
     domain::{errors::DomainError, phone::Phone, roles::Role},
     errors::AppError,
-    routes::users::moderate::ensure_not_banned,
 };
 
 // Generates the otp
@@ -81,7 +81,7 @@ pub async fn verify_user_otp(
 ) -> Result<HttpResponse, AppError> {
     let VerifyOtpBody { phone, otp } = body.into_inner();
     let phone = Phone::parse(&phone)?;
-    ensure_not_banned(&pool, &phone).await?;
+    // ensure_not_banned(&pool, &phone).await?;
     let otp_hash = get_otp_hash(&phone, &pool).await?;
     let otp = SecretString::new(otp.into());
 
@@ -106,14 +106,15 @@ pub async fn verify_user_otp(
     })))
 }
 
-#[tracing::instrument(name = "saving otp in the database", skip(pool, phone))]
+#[tracing::instrument(name = "saving otp in the redis database", skip(pool, phone))]
 pub async fn insert_otp(
     pool: &PgPool,
+    redis: &mut ConnectionManager,
     phone: &Phone,
     otp: &SecretString,
 ) -> Result<(), DomainError> {
     let hashed_otp = hash_otp(otp).map_err(|e| {
-        tracing::error!(error=?e, "failed to vrify");
+        tracing::error!(error=?e, "failed to hash the otp");
         DomainError::Internal
     })?;
 

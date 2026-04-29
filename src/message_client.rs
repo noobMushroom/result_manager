@@ -35,7 +35,7 @@ impl MessageClient {
 
     pub async fn send_otp(&self, otp: SecretString, phone: &Phone) -> Result<(), reqwest::Error> {
         let message = format!(
-            "Your login otp for St James Result is {}",
+            "Your login otp is {}",
             otp.expose_secret()
         );
 

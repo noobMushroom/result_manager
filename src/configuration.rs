@@ -6,6 +6,7 @@ use sqlx::postgres::PgConnectOptions;
 #[derive(Debug, Deserialize, Clone)]
 pub struct Settings {
     pub database: DatabaseSettings,
+    pub redis: RedisDatabaseSettings,
     pub application: ApplicationSettings,
     pub message_client: MessageClientSettings,
     pub jwt: JwtSettings,
@@ -53,6 +54,18 @@ pub struct DatabaseSettings {
     pub database_name: String,
 }
 
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct RedisDatabaseSettings {
+    pub host: String,
+    #[serde(deserialize_with = "deserialize_number_from_string")]
+    pub port: u16,
+    #[serde(deserialize_with = "deserialize_number_from_string")]
+    pub database_index: u8,
+    pub password: SecretString
+
+}
+
 impl DatabaseSettings {
     pub fn without_db(&self) -> PgConnectOptions {
         PgConnectOptions::new()
@@ -66,6 +79,13 @@ impl DatabaseSettings {
         self.without_db().database(&self.database_name)
     }
 }
+
+impl RedisDatabaseSettings {
+    pub fn connection_string(&self) -> String  {
+        format!("redis://:{}@{}:{}/{}", self.password.expose_secret(), self.host, self.port, self.database_index)
+    }
+}
+
 pub fn get_configuration() -> Result<Settings, config::ConfigError> {
     let base_path = std::env::current_dir().expect("failed to determine current path");
     let configuration_directory = base_path.join("configuration");

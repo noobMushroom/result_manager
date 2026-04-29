@@ -1,4 +1,3 @@
-use chrono::{Duration, Utc};
 use serde_json::Value;
 
 use crate::{
@@ -24,19 +23,18 @@ impl VerifyOtpBody {
 #[actix::test]
 async fn responds_with_200_ok_for_valid_otp() {
     let app = spawn_app().await;
-    let phone = "1234567890";
+    let phone = app.test_user.get_phone();
     mock_server(&app.message_server).await;
-    let otp = app.request_otp_and_extract(&phone).await;
+    let otp = app.request_otp_and_extract(phone).await;
     let body = VerifyOtpBody::new(phone, &otp);
     let response = app.send_verify_otp_req(&body).await;
-
-    assert_eq!(response.status().as_u16(), 200)
+    assert_eq!(response.status().as_u16(), 200);
 }
 
 #[actix::test]
 async fn responds_with_jwt_token_for_successful_login() {
     let app = spawn_app().await;
-    let phone = "1234567890";
+    let phone = app.test_user.get_phone();
     mock_server(&app.message_server).await;
     let otp = app.request_otp_and_extract(&phone).await;
     let body = VerifyOtpBody::new(phone, &otp);
@@ -54,13 +52,14 @@ async fn responds_with_jwt_token_for_successful_login() {
 }
 
 #[actix::test]
-async fn doesnt_return_jwt_for_invalid() {
+async fn returns_400_if_otp_trying_to_verify_without_requesting_otp() {
     let app = spawn_app().await;
-    let phone = "1234567890";
+    let phone = app.test_user.get_phone();
+    println!("{}", phone);
     let body = VerifyOtpBody::new(phone, "123456");
     let response = app.send_verify_otp_req(&body).await;
 
-    assert_eq!(response.status().as_u16(), 401);
+    assert_eq!(response.status().as_u16(), 400);
 
     let resp_body: Value = response.json().await.expect("failed to parse json");
 
@@ -70,11 +69,11 @@ async fn doesnt_return_jwt_for_invalid() {
 #[actix::test]
 async fn only_latest_otp_should_verify_2_try() {
     let app = spawn_app().await;
-    let phone = "1234567890";
+    let phone = app.test_user.get_phone();
     mock_server(&app.message_server).await;
 
     let otp1 = app.request_otp_and_extract(phone).await;
-    app.rewind_latest_otp_created_at(phone).await;
+    app.expire_cooldown_time(phone).await;
     let otp2 = app.request_otp_and_extract(phone).await;
 
     let res_old = app
@@ -91,17 +90,19 @@ async fn only_latest_otp_should_verify_2_try() {
 #[actix::test]
 async fn only_latest_otp_should_verify_3_try() {
     let app = spawn_app().await;
-    let phone = "1234567890";
+    let phone = app.test_user.get_phone();
     mock_server(&app.message_server).await;
     let otp1 = app.request_otp_and_extract(phone).await;
-    app.rewind_latest_otp_created_at(phone).await;
+    app.expire_cooldown_time(phone).await;
     let otp2 = app.request_otp_and_extract(phone).await;
-    app.rewind_latest_otp_created_at(phone).await;
+    app.expire_cooldown_time(phone).await;
     let otp3 = app.request_otp_and_extract(phone).await;
 
     let res_old = app
         .send_verify_otp_req(&VerifyOtpBody::new(phone, &otp1))
         .await;
+
+    println!("{}", res_old.status());
     let res_old1 = app
         .send_verify_otp_req(&VerifyOtpBody::new(phone, &otp2))
         .await;
@@ -115,22 +116,22 @@ async fn only_latest_otp_should_verify_3_try() {
 }
 
 #[actix::test]
-async fn after_trying_3_times_user_should_be_ban() {
+async fn after_requesting_3_times_user_should_be_ban() {
     let app = spawn_app().await;
-    let phone = "1234567890";
+    let phone = app.test_user.get_phone();
     mock_server(&app.message_server).await;
     let body = LoginReqBody::new(phone);
-    app.send_login_req(&body).await;
-    app.rewind_latest_otp_created_at(phone).await;
-    app.send_login_req(&body).await;
-    app.rewind_latest_otp_created_at(phone).await;
-    app.send_login_req(&body).await;
-    app.rewind_latest_otp_created_at(phone).await;
+
+    for _ in 0..3 {
+        app.send_login_req(&body).await;
+        app.expire_cooldown_time(phone).await;
+    }
+
     let res_ban = app.send_login_req(&body).await;
 
-    let count = app.get_otp_attempts(&phone).await;
+    let count = app.get_otp_requests(&phone).await;
 
-    dbg!(count);
+    assert!(count > 3);
 
     assert_eq!(res_ban.status(), 403);
 }
@@ -138,7 +139,7 @@ async fn after_trying_3_times_user_should_be_ban() {
 #[actix::test]
 async fn responds_with_401_for_invalid_otp() {
     let app = spawn_app().await;
-    let phone = "1234567890";
+    let phone = app.test_user.get_phone();
 
     let send_login_req_body = LoginReqBody::new(&phone);
 
@@ -150,63 +151,57 @@ async fn responds_with_401_for_invalid_otp() {
 
     let response = app.send_verify_otp_req(&body).await;
 
-    assert_eq!(response.status().as_u16(), 401)
+    assert_eq!(response.status().as_u16(), 401);
 }
 
 #[actix::test]
-async fn multiple_requests_should_increase_attempts_count() {
+async fn attempting_after_5_wrong_attempt_user_should_be_banned() {
     let app = spawn_app().await;
-    let phone = "1234567890";
-    let send_login_req_body = LoginReqBody::new(&phone);
+    let phone = app.test_user.get_phone();
     mock_server(&app.message_server).await;
-    // sent once
-    app.send_login_req(&send_login_req_body).await;
-    // rewinded 30 seconds
-    app.rewind_latest_otp_created_at(&phone).await;
-    //sent second time
-    app.send_login_req(&send_login_req_body).await;
+
+    let otp = app.request_otp_and_extract(phone).await;
+
+    for _ in 0..=5 {
+        app.send_verify_otp_req(&VerifyOtpBody::new(phone, "123456"))
+            .await;
+    }
+
     let count = app.get_otp_attempts(&phone).await;
-    assert_eq!(count, 2)
+    assert!(count > 5);
+
+    let res = app
+        .send_verify_otp_req(&VerifyOtpBody::new(phone, &otp))
+        .await;
+
+    assert_eq!(res.status().as_u16(), 403);
+}
+
+#[actix::test]
+async fn attempting_5th_time_user_shouldnt_be_banned() {
+    let app = spawn_app().await;
+    let phone = app.test_user.get_phone();
+    mock_server(&app.message_server).await;
+
+    let otp = app.request_otp_and_extract(phone).await;
+
+    for _ in 0..5 {
+        app.send_verify_otp_req(&VerifyOtpBody::new(phone, "123456"))
+            .await;
+    }
+    let res = app
+        .send_verify_otp_req(&VerifyOtpBody::new(phone, &otp))
+        .await;
+    assert_eq!(res.status().as_u16(), 200);
 }
 
 #[actix::test]
 async fn instant_request_should_return_429() {
     let app = spawn_app().await;
-    let phone = "1234567890";
+    let phone = app.test_user.get_phone();
     let send_login_req_body = LoginReqBody::new(&phone);
     mock_server(&app.message_server).await;
     app.send_login_req(&send_login_req_body).await;
     let res = app.send_login_req(&send_login_req_body).await;
-    assert_eq!(res.status().as_u16(), 429)
-}
-
-#[actix::test]
-pub async fn return_forbidden_if_user_for_banned_verify() {
-    let app = spawn_app().await;
-    let phone = "1234567890";
-    sqlx::query!(
-        r#"
-            INSERT INTO user_bans (phone_number, banned_until, reason)
-            VALUES($1, $2, $3)
-        "#,
-        phone,
-        Utc::now() + Duration::minutes(5),
-        "Too many otp attempts"
-    )
-    .execute(&app.db_pool)
-    .await
-    .unwrap();
-
-    let body = VerifyOtpBody::new(phone, "123456");
-    let response = app.send_verify_otp_req(&body).await;
-    assert_eq!(response.status().as_u16(), 403)
-}
-
-#[actix::test]
-pub async fn return_unautharised_if_no_is_not_registered() {
-    let app = spawn_app().await;
-    let phone = "1234566890";
-    let body = VerifyOtpBody::new(phone, "123456");
-    let response = app.send_verify_otp_req(&body).await;
-    assert_eq!(response.status().as_u16(), 401)
+    assert_eq!(res.status().as_u16(), 429);
 }

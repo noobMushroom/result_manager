@@ -53,6 +53,17 @@ impl TryFrom<&str> for Sections {
     }
 }
 
+impl From<Sections> for String {
+    fn from(value: Sections) -> Self {
+        match value {
+            Sections::A => String::from("A"),
+            Sections::B => String::from("B"),
+            Sections::C => String::from("C"),
+            Sections::D => String::from("D"),
+        }
+    }
+}
+
 impl TryFrom<&str> for ExamTypes {
     type Error = DomainError;
 

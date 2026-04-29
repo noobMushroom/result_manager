@@ -1,5 +1,7 @@
 use crate::{
-    domain::errors::DomainError, errors::AppError, routes::academics::get_grades::get_grade_info,
+    domain::errors::DomainError,
+    errors::AppError,
+    routes::academics::{Sections, get_grades::get_grade_info},
 };
 use actix_web::{HttpResponse, get, web};
 use chrono::NaiveDate;
@@ -23,7 +25,7 @@ pub async fn get_students(
     grade: web::Path<String>,
 ) -> Result<HttpResponse, AppError> {
     let grade = grade.into_inner();
-    let grade_id = get_grade_info(&pool, &grade.to_uppercase())
+    let grade_id = get_grade_info(&pool, &grade)
         .await?
         .ok_or_else(|| AppError::BadRequest("Invalid grade name".to_string()))?;
 
@@ -60,6 +62,7 @@ pub struct SearchStudentsQuery {
     pub grade_id: Option<Uuid>,
     pub q: Option<String>,
     pub admission_no: Option<i32>,
+    pub section: Option<Sections>,
 
     pub limit: Option<i64>,
     pub offset: Option<i64>,
@@ -82,7 +85,7 @@ pub async fn seach_students(
     query: web::Query<SearchStudentsQuery>,
 ) -> Result<HttpResponse, AppError> {
     query.validate()?;
-
+    let section = query.section.as_ref().map(|sec| sec.as_ref());
     let limit = query.limit.unwrap_or(20);
     let offset = query.offset.unwrap_or(0);
 
@@ -106,12 +109,14 @@ pub async fn seach_students(
               OR s.name ILIKE '%' || $3 || '%'
               OR s.father_name ILIKE '%' || $3 || '%'
         )
+        AND ($4::text IS NULL OR s.section = $4) 
         ORDER BY s.admission_no
-        LIMIT $4 OFFSET $5
+        LIMIT $5 OFFSET $6
         "#,
         query.grade_id,
         query.admission_no,
         query.q,
+        section,
         limit,
         offset,
     )
