@@ -3,44 +3,44 @@ CREATE TABLE subjects (
     id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     name TEXT NOT NULL,
     code TEXT NOT NULL,
+    evalution_type TEXT NOT NULL,
     UNIQUE (name),
     UNIQUE (code)
 );
 
 
-INSERT INTO subjects (name, code) VALUES
-  ('Mathematics', 'MATHS'),
-  ('English', 'ENG'),
-  ('Hindi', 'HIN'),
+INSERT INTO subjects (name, code, evalution_type) VALUES
+  ('Mathematics', 'MATHS', 'MARKS'),
+  ('English', 'ENG', 'MARKS'),
+  ('Hindi', 'HIN', 'MARKS'),
 
-  ('English Oral', 'ENG_ORAL'),
-  ('English Rhymes', 'ENG_RHYMES'),
-  ('Hindi Oral', 'HIN_ORAL'),
-  ('Hindi Rhymes', 'HIN_RHYMES'),
-  ('Mathematics Oral', 'MATHS_ORAL'),
+  ('English Oral', 'ENG_ORAL', 'GRADE'),
+  ('English Rhymes', 'ENG_RHYMES', 'GRADE'),
+  ('Hindi Oral', 'HIN_ORAL', 'GRADE'),
+  ('Hindi Rhymes', 'HIN_RHYMES', 'GRADE'),
+  ('Mathematics Oral', 'MATHS_ORAL', 'GRADE'),
 
-  ('Class Performance', 'CLASS_PERF'),
-  ('Well Dressed', 'WELL_DRESSED'),
-  ('Drawing', 'DRAW'),
-  ('Physical Training', 'PT'),
+  ('Class Performance', 'CLASS_PERF', 'GRADE'),
+  ('Well Dressed', 'WELL_DRESSED', 'GRADE'),
+  ('Drawing', 'DRAW', 'GRADE'),
+  ('Physical Training', 'PT', 'GRADE'),
 
-  ('Worksheet Activity', 'WORKSHEET'),
-  ('Activity Work', 'ACTIVITY'),
+  ('Worksheet Activity', 'WORKSHEET', 'GRADE'),
+  ('Activity Work', 'ACTIVITY', 'GRADE'),
 
-  ('General Science', 'GS'),
-  ('General Science Oral', 'GS_ORAL'),
+  ('General Science', 'GS', 'MARKS'),
+  ('General Science Oral', 'GS_ORAL', 'GRADE'),
 
-  ('English Literature', 'ENG_LIT'),
-  ('English Language', 'ENG_LANG'),
+  ('English Literature', 'ENG_LIT', 'MARKS'),
+  ('English Language', 'ENG_LANG', 'MARKS'),
 
-  ('Social Studies', 'SST'),
-  ('Environmental Science', 'EVS'),
-  ('Computer', 'COMP'),
-  ('General Knowledge', 'GK'),
-  ('Sanskrit', 'SANS'),
+  ('Social Science', 'SS', 'MARKS'),
+  ('Environmental Science', 'EVS', 'MARKS'),
+  ('Computer', 'COMP', 'MARKS'),
+  ('General Knowledge', 'GK', 'MARKS'),
+  ('Sanskrit', 'SANS', 'MARKS'),
 
-  ('Science Biology', 'SCI_BIO'),
-  ('Science Physics Chemistry', 'SCI_PHY_CHEM'),
+  ('Science', 'SCI', 'MARKS'),
 
-  ('Geography', 'GEO'),
-  ('History Civics', 'HIST_CIV');
+  ('Geography', 'GEO', 'MARKS'),
+  ('History Civics', 'HIST_CIV', 'MARKS');

@@ -1,8 +1,9 @@
 use crate::auth::middleware::{jwt_middleware, jwt_middleware_teacher};
 use crate::configuration::{DatabaseSettings, Settings};
 use crate::message_client::MessageClient;
-use crate::otp::service::verify_otp;
-use crate::redis::repo::RedisRepo;
+use crate::repostiory::teacher_repo::TeacherRepo;
+use crate::routes::teachers::otp::verify_otp;
+use crate::repostiory::otp_repo::OtpRepo;
 use crate::routes::academics::get_assesment::get_assessment_scheme;
 use crate::routes::academics::get_exam_types::get_exam_types;
 use crate::routes::academics::get_grades::get_grades;
@@ -11,8 +12,8 @@ use crate::routes::health_check::health;
 use crate::routes::result::add_result::add_result;
 use crate::routes::students::get_student::{get_students, seach_students};
 use crate::routes::students::register::register_student;
-use crate::routes::users::login::teacher_login;
-use crate::routes::users::register::add_teacher;
+use crate::routes::teachers::login::teacher_login;
+use crate::routes::teachers::register::add_teacher;
 use actix_web::dev::Server;
 use actix_web::middleware::from_fn;
 use actix_web::{App, HttpServer, web};
@@ -35,7 +36,8 @@ impl Application {
             configuration.application.host, configuration.application.port
         );
 
-        let redis_connection = RedisRepo::new(&configuration.redis.connection_string()).await?;
+        let redis_connection = OtpRepo::new(&configuration.redis.connection_string()).await?;
+        let teacher_repo = TeacherRepo::new(&connection_pool);
 
         let message_client = MessageClient::new(
             configuration.message_client.timeout(),
@@ -48,6 +50,7 @@ impl Application {
         let server = run(
             listener,
             connection_pool,
+            teacher_repo,
             redis_connection,
             message_client,
             configuration.jwt.secret_token(),
@@ -74,13 +77,15 @@ pub fn get_connection_pool(configuration: &DatabaseSettings) -> PgPool {
 pub fn run(
     listen: TcpListener,
     db_pool: PgPool,
-    redis: RedisRepo,
+    teacher_repo: TeacherRepo,
+    redis: OtpRepo,
     message_client: MessageClient,
     jwt_secret: SecretString,
 ) -> Result<Server, std::io::Error> {
     let connection = web::Data::new(db_pool);
     let message_client = web::Data::new(message_client);
     let jwt_secret = web::Data::new(jwt_secret);
+    let teacher_repo = web::Data::new(teacher_repo);
     let redis_connection = web::Data::new(redis);
     let server = HttpServer::new(move || {
         App::new()
@@ -117,6 +122,7 @@ pub fn run(
             )
             .service(health)
             .app_data(connection.clone())
+            .app_data(teacher_repo.clone())
             .app_data(redis_connection.clone())
             .app_data(jwt_secret.clone())
             .app_data(message_client.clone())

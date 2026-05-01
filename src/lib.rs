@@ -1,9 +1,9 @@
 pub mod auth;
+pub mod repostiory;
 pub mod configuration;
 pub mod domain;
 pub mod errors;
 pub mod message_client;
-pub mod redis;
 pub mod otp;
 pub mod routes;
 pub mod startup;

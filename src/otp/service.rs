@@ -1,9 +1,6 @@
-use crate::auth::jwt::generate_jwt;
 use crate::domain::phone::Phone;
-use crate::domain::roles::Role;
-use crate::routes::users::otp::get_user;
-use crate::{errors::AppError, message_client::MessageClient, redis::repo::RedisRepo};
-use actix_web::{HttpResponse, post, web};
+use crate::repostiory::otp_repo::OtpRepo;
+use crate::{errors::AppError, message_client::MessageClient};
 use argon2::password_hash::{PasswordHasher, SaltString};
 use argon2::{
     Argon2,
@@ -11,56 +8,12 @@ use argon2::{
 };
 use rand::{Rng, rng};
 use secrecy::{ExposeSecret, SecretString};
-use sqlx::PgPool;
-
-
-#[derive(serde::Deserialize)]
-struct VerifyOtpBody {
-    otp: SecretString,
-    phone: Phone,
-}
-
-
-/// Verifies the otp if right sends back the jwt token and if wrong increase the wrong otp attempts
-/// and return unouthorized
-#[tracing::instrument(name = "Verifying the otp", skip(pool, body, secret, redis_connection))]
-#[post("/verify")]
-pub async fn verify_otp(
-    pool: web::Data<PgPool>,
-    body: web::Json<VerifyOtpBody>,
-    secret: web::Data<SecretString>,
-    redis_connection: web::Data<RedisRepo>,
-) -> Result<HttpResponse, AppError> {
-    let VerifyOtpBody { otp, phone} = body.into_inner();
-    redis_connection.ensure_not_banned(&phone).await?;
-    // Getting otp from the db
-    let otp_hash = SecretString::new(redis_connection.get_otp(&phone).await?.into());
-    
-    if !verify_otp_hash(&otp, &otp_hash).map_err(|e| {
-        tracing::error!(error=?e, "Argon error falied to verify");
-        AppError::Internal
-    })? {
-        redis_connection.increment_wrong_attempts(&phone, 600).await?;
-        return Err(AppError::Unauthorised);
-    }
-    redis_connection.reset_bans(&phone).await?;
-    
-    let user = get_user(&phone, &pool).await?;
-    let role = Role::try_from(user.role)?;
-
-    let jwt_token = generate_jwt(user.id, role, &secret.into_inner()).map_err(|_| AppError::Internal)?;
-
-    Ok(HttpResponse::Ok().json(serde_json::json!({
-        "token": jwt_token,
-        "token_type": "Bearer"
-    })))
-}
 
 /// Checks if the user is banned or not and then set cool down timer for the otp (30 seconds) and
 /// increment the otp requests, inserts the otp and sends the otp to user
 #[tracing::instrument(name = "saving otp in the redis database and sending it", skip(redis_connection, message_client), fields(phone = %phone.as_ref()))]
 pub async fn send_otp(
-    redis_connection: &RedisRepo,
+    redis_connection: &OtpRepo,
     message_client: &MessageClient,
     phone: &Phone,
 ) -> Result<(), AppError> {
@@ -109,4 +62,32 @@ pub fn verify_otp_hash(
     Ok(Argon2::default()
         .verify_password(otp.expose_secret().as_bytes(), &parsed_hash)
         .is_ok())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn generate_random_otp() {
+        let otp1 = generate_otp();
+        let otp2 = generate_otp();
+
+        assert_ne!(otp1.expose_secret(), otp2.expose_secret())
+    }
+
+    #[test]
+    fn test_generate_decode_hash() {
+        let otp = generate_otp();
+        let hash = hash_otp(&otp).unwrap();
+        let decoded_otp = verify_otp_hash(&otp, &hash).unwrap();
+        assert!(decoded_otp)
+    }
+
+    #[test]
+    fn test_random_hash_should_produce_wrong() {
+        let hash = hash_otp(&SecretString::new("123457".into())).unwrap();
+        let decoded = verify_otp_hash(&SecretString::new("12345".into()), &hash).unwrap();
+        assert!(!decoded)
+    }
 }

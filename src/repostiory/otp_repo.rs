@@ -1,17 +1,17 @@
 use redis::{AsyncCommands, RedisError, aio::ConnectionManager};
 use secrecy::{ExposeSecret, SecretString};
 
-use crate::{domain::phone::Phone, errors::AppError, otp::error::OtpErrors, redis::utils::OtpTimers};
+use crate::{domain::phone::Phone, errors::AppError, otp::error::OtpErrors, repostiory::utils::OtpTimers};
 
-/// Redis repo struct store redis connection and function to run db methods following repository
+/// Otp repo struct store redis connection and function to run db methods following repository
 /// pattern
 #[derive(Clone)]
-pub struct RedisRepo {
+pub struct OtpRepo {
     pub con: ConnectionManager,
 }
 
-impl RedisRepo {
-    /// Creates a new ConnectionManager and returns a RedisRepo struct
+impl OtpRepo {
+    /// Creates a new ConnectionManager and returns a OtpRepo struct
     pub async fn new(connection_string: &str) -> Result<Self, RedisError> {
         let client = redis::Client::open(connection_string)?;
         let con = ConnectionManager::new(client).await?;

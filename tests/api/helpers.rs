@@ -13,8 +13,8 @@ use reqwest::Response;
 use result_management::auth::jwt::generate_jwt;
 use result_management::configuration::{DatabaseSettings, get_configuration};
 use result_management::domain::roles::Role;
-use result_management::redis::repo::RedisRepo;
-use result_management::redis::utils::OtpTimers;
+use result_management::repostiory::utils::OtpTimers;
+use result_management::repostiory::otp_repo::OtpRepo;
 use result_management::routes::academics::get_assesment::{AssessmentBody, AssessmentResponse};
 use result_management::routes::academics::get_grades::GradeBodyResponse;
 use result_management::routes::academics::get_terms::TermsResponse;
@@ -94,7 +94,7 @@ pub struct TestApp {
     pub address: String,
     pub db_pool: PgPool,
     pub message_server: MockServer,
-    pub redis: RedisRepo,
+    pub redis: OtpRepo,
     pub api_client: reqwest::Client,
     pub test_user: TestUser,
 }
@@ -355,7 +355,7 @@ pub async fn spawn_app() -> TestApp {
         c
     };
 
-    let redis = RedisRepo::new(&configuration.redis.connection_string())
+    let redis = OtpRepo::new(&configuration.redis.connection_string())
         .await
         .unwrap();
 
