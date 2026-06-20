@@ -1,11 +1,11 @@
 use actix_web::{HttpResponse, post, web};
 use chrono::NaiveDate;
-use sqlx::PgPool;
-use uuid::Uuid;
 
 use crate::{
+    cache::app_cache::AppCache,
     domain::{errors::DomainError, grade::Grade, new_student::NewStudent, username::Username},
     errors::AppError,
+    repostiory::student_repo::StudentRepo,
     routes::academics::Sections,
 };
 
@@ -39,9 +39,11 @@ impl TryFrom<StudentData> for NewStudent {
     }
 }
 
+
+/// Endpoint to add students in the db
 #[tracing::instrument(
     name = "adding a new student",
-    skip(json, connection),
+    skip(json, app_cache, student_repo),
     fields(
         name = %json.name,
         father_name = %json.father_name,
@@ -53,57 +55,10 @@ impl TryFrom<StudentData> for NewStudent {
 #[post("/add_student")]
 pub async fn register_student(
     json: web::Json<StudentData>,
-    connection: web::Data<PgPool>,
+    app_cache: web::Data<AppCache>,
+    student_repo: web::Data<StudentRepo>,
 ) -> Result<HttpResponse, AppError> {
     let new_student: NewStudent = json.into_inner().try_into()?;
-    insert_student(&connection, &new_student).await?;
+    student_repo.insert_student(new_student, &app_cache).await?;
     Ok(HttpResponse::Ok().finish())
-}
-
-#[tracing::instrument(name = "saving the new student to the database", skip(student, pool))]
-pub async fn insert_student(pool: &PgPool, student: &NewStudent) -> Result<(), DomainError> {
-    let grade = get_grade_uuid(pool, student.grade.as_ref()).await?;
-    match sqlx::query!(
-        r#"
-            INSERT INTO students (id, grade_id, name, father_name, admission_no, date_of_birth, section)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
-        "#,
-        Uuid::new_v4(),
-        grade,
-        student.name.as_ref(),
-        student.father_name.as_ref(),
-        student.adm_no,
-        student.date_of_birth,
-        student.section.as_ref().map(|s| s.as_ref()),
-    )
-    .execute(pool)
-    .await
-    {
-        Ok(_) => Ok(()),
-        Err(sqlx::Error::Database(db_error))
-            if db_error.constraint() == Some("students_admission_no_key") =>
-        {
-            Err(DomainError::DuplicateAdmissionNo)
-        }
-
-        _ => Err(DomainError::Internal),
-    }
-}
-
-// Function to get grade uuid from db
-#[tracing::instrument(name = "getting the grade uuid from db", skip(grade, pool))]
-pub async fn get_grade_uuid(pool: &PgPool, grade: &str) -> Result<Uuid, DomainError> {
-    let uuid = sqlx::query!(
-        r#"
-            SELECT id FROM grades WHERE name= $1
-        "#,
-        grade
-    )
-    .fetch_one(pool)
-    .await;
-
-    match uuid {
-        Ok(uuid) => Ok(uuid.id),
-        Err(_) => Err(DomainError::InvalidGrade),
-    }
 }

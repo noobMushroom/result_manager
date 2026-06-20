@@ -1,4 +1,5 @@
 pub mod errors;
+pub mod academics;
 pub mod grade;
 pub mod new_student;
 pub mod new_teacher;

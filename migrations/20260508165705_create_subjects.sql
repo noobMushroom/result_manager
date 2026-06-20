@@ -3,13 +3,13 @@ CREATE TABLE subjects (
     id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     name TEXT NOT NULL,
     code TEXT NOT NULL,
-    evalution_type TEXT NOT NULL,
+    evaluation_type TEXT NOT NULL,
     UNIQUE (name),
     UNIQUE (code)
 );
 
 
-INSERT INTO subjects (name, code, evalution_type) VALUES
+INSERT INTO subjects (name, code, evaluation_type) VALUES
   ('Mathematics', 'MATHS', 'MARKS'),
   ('English', 'ENG', 'MARKS'),
   ('Hindi', 'HIN', 'MARKS'),
@@ -39,8 +39,5 @@ INSERT INTO subjects (name, code, evalution_type) VALUES
   ('Computer', 'COMP', 'MARKS'),
   ('General Knowledge', 'GK', 'MARKS'),
   ('Sanskrit', 'SANS', 'MARKS'),
+  ('Science', 'SCI', 'MARKS');
 
-  ('Science', 'SCI', 'MARKS'),
-
-  ('Geography', 'GEO', 'MARKS'),
-  ('History Civics', 'HIST_CIV', 'MARKS');

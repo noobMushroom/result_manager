@@ -84,51 +84,51 @@ pub async fn get_assessment_scheme(
     pool: web::Data<PgPool>,
     query: web::Query<AssessmentBody>,
 ) -> Result<HttpResponse, AppError> {
-    let rows = sqlx::query_as!(
-        AssessmentResponse,
-        r#"
-        SELECT
-            a.id           AS "assessment_id!",
+    // let rows = sqlx::query_as!(
+    //     AssessmentResponse,
+    //     r#"
+    //     SELECT
+    //         a.id           AS "assessment_id!",
+    //
+    //         t.id           AS "term_id!",
+    //         t.name         AS "term_name!",
+    //
+    //         s.id           AS "subject_id!",
+    //         s.name         AS "subject_name!",
+    //         s.code         AS "subject_code!",
+    //
+    //         e.id           AS "exam_id!",
+    //         e.display_name AS "exam_display_name!",
+    //
+    //         et.id          AS "exam_type_id!",
+    //         et.code        AS "exam_type_code!",
+    //
+    //         a.evaluation_type AS "evaluation_type!",
+    //         a.max_marks
+    //     FROM assessment_scheme a
+    //     JOIN exams e
+    //         ON a.exam_id = e.id
+    //     JOIN exam_types et
+    //         ON e.exam_type_id = et.id
+    //     JOIN terms t
+    //         ON e.term_id = t.id
+    //     JOIN subjects s
+    //         ON a.subject_id = s.id
+    //     WHERE a.grade_id = $1
+    //       AND e.term_id = $2
+    //     ORDER BY
+    //         s.name,
+    //         et.code
+    //     "#,
+    //     query.grade,
+    //     query.term
+    // )
+    // .fetch_all(pool.get_ref())
+    // .await
+    // .map_err(|e| {
+    //     tracing::error!(error=?e, "Error fetching assesment");
+    //     AppError::Internal
+    // })?;
 
-            t.id           AS "term_id!",
-            t.name         AS "term_name!",
-
-            s.id           AS "subject_id!",
-            s.name         AS "subject_name!",
-            s.code         AS "subject_code!",
-
-            e.id           AS "exam_id!",
-            e.display_name AS "exam_display_name!",
-
-            et.id          AS "exam_type_id!",
-            et.code        AS "exam_type_code!",
-
-            a.evaluation_type AS "evaluation_type!",
-            a.max_marks
-        FROM assessment_scheme a
-        JOIN exams e
-            ON a.exam_id = e.id
-        JOIN exam_types et
-            ON e.exam_type_id = et.id
-        JOIN terms t
-            ON e.term_id = t.id
-        JOIN subjects s
-            ON a.subject_id = s.id
-        WHERE a.grade_id = $1
-          AND e.term_id = $2
-        ORDER BY
-            s.name,
-            et.code
-        "#,
-        query.grade,
-        query.term
-    )
-    .fetch_all(pool.get_ref())
-    .await
-    .map_err(|e| {
-        tracing::error!(error=?e, "Error fetching assesment");
-        AppError::Internal
-    })?;
-
-    Ok(HttpResponse::Ok().json(rows))
+    Ok(HttpResponse::Ok().finish())
 }

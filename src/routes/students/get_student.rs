@@ -1,11 +1,6 @@
-use crate::{
-    domain::errors::DomainError,
-    errors::AppError,
-    routes::academics::{Sections, get_grades::get_grade_info},
-};
+use crate::{cache::app_cache::AppCache, errors::AppError, repostiory::student_repo::StudentRepo};
 use actix_web::{HttpResponse, get, web};
 use chrono::NaiveDate;
-use sqlx::PgPool;
 use uuid::Uuid;
 
 #[derive(serde::Deserialize, serde::Serialize, Debug)]
@@ -18,114 +13,36 @@ pub struct GetStudentsResponse {
     date_of_birth: NaiveDate,
 }
 
-#[tracing::instrument(name = "getting the Students from db", skip(pool))]
-#[get("/get_students/{grade}")]
-pub async fn get_students(
-    pool: web::Data<PgPool>,
-    grade: web::Path<String>,
-) -> Result<HttpResponse, AppError> {
-    let grade = grade.into_inner();
-    let grade_id = get_grade_info(&pool, &grade)
-        .await?
-        .ok_or_else(|| AppError::BadRequest("Invalid grade name".to_string()))?;
-
-    let body = sqlx::query_as!(
-        GetStudentsResponse,
-        r#"
-        SELECT
-            s.id,
-            s.name,
-            s.father_name,
-            g.name          AS grade_name,
-            s.admission_no,
-            s.date_of_birth
-        FROM students s
-        JOIN grades g
-            ON s.grade_id = g.id
-        WHERE s.grade_id = $1
-        ORDER BY s.admission_no
-        "#,
-        grade_id.id,
-    )
-    .fetch_all(pool.get_ref())
-    .await
-    .map_err(|e| {
-        tracing::error!(error=?e, "Error while loading students");
-        AppError::Internal
-    })?;
-
-    Ok(HttpResponse::Ok().json(body))
-}
-
 #[derive(serde::Deserialize)]
 pub struct SearchStudentsQuery {
-    pub grade_id: Option<Uuid>,
-    pub q: Option<String>,
+    pub grade: Option<String>,
+    pub name: Option<String>,
     pub admission_no: Option<i32>,
-    pub section: Option<Sections>,
+    pub section: Option<String>,
 
     pub limit: Option<i64>,
     pub offset: Option<i64>,
 }
 
 impl SearchStudentsQuery {
-    fn validate(&self) -> Result<(), DomainError> {
-        if self.q.is_none() && self.grade_id.is_none() && self.admission_no.is_none() {
-            return Err(DomainError::BadRequest("Invalid search query".to_string()));
-        }
-
-        Ok(())
+    pub fn has_filters(&self) -> bool {
+        self.name.is_some() || self.grade.is_some() || self.admission_no.is_some()
     }
 }
 
-#[tracing::instrument(name = "getting the Students from db", skip(pool, query))]
-#[get("/search")]
-pub async fn seach_students(
-    pool: web::Data<PgPool>,
+/// Search students or get all students if no parameter is given
+#[tracing::instrument(
+    name = "getting the Students from db",
+    skip(student_repo, app_cache, query)
+)]
+#[get("/get_students")]
+pub async fn get_students(
+    student_repo: web::Data<StudentRepo>,
     query: web::Query<SearchStudentsQuery>,
+    app_cache: web::Data<AppCache>,
 ) -> Result<HttpResponse, AppError> {
-    query.validate()?;
-    let section = query.section.as_ref().map(|sec| sec.as_ref());
-    let limit = query.limit.unwrap_or(20);
-    let offset = query.offset.unwrap_or(0);
-
-    let students = sqlx::query_as!(
-        GetStudentsResponse,
-        r#"
-        SELECT
-            s.id,
-            s.name,
-            s.father_name,
-            g.name AS grade_name,
-            s.admission_no,
-            s.date_of_birth
-        FROM students s
-        JOIN grades g ON s.grade_id = g.id
-        WHERE
-            ($1::uuid IS NULL OR s.grade_id = $1)
-        AND ($2::int IS NULL OR s.admission_no = $2)
-        AND (
-              $3::text IS NULL
-              OR s.name ILIKE '%' || $3 || '%'
-              OR s.father_name ILIKE '%' || $3 || '%'
-        )
-        AND ($4::text IS NULL OR s.section = $4) 
-        ORDER BY s.admission_no
-        LIMIT $5 OFFSET $6
-        "#,
-        query.grade_id,
-        query.admission_no,
-        query.q,
-        section,
-        limit,
-        offset,
-    )
-    .fetch_all(pool.get_ref())
-    .await
-    .map_err(|e| {
-        tracing::error!(error = ?e, "Error searching students");
-        AppError::Internal
-    })?;
-
-    Ok(HttpResponse::Ok().json(students))
+    let students = student_repo.get_students(&query, &app_cache).await?;
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "students": students
+    })))
 }

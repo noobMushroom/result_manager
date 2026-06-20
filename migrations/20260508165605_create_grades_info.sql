@@ -1,21 +1,24 @@
 -- Add migration script here
-CREATE TABLE students (
+CREATE TABLE grades (
     id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-
-    grade_id uuid NOT NULL,
-
-    name TEXT NOT NULL,
-    father_name TEXT NOT NULL,
-
-    admission_no INTEGER NOT NULL UNIQUE,
-
-    date_of_birth DATE NOT NULL,
-
-    section_id uuid NULL,
-
-    FOREIGN KEY (grade_id) REFERENCES grades(id),
-    FOREIGN KEY (section_id) REFERENCES sections(id)
+    name TEXT NOT NULL,        
+    sort_order INT NOT NULL,   
+    UNIQUE (name),
+    UNIQUE (sort_order)
 );
+
+INSERT INTO grades (name, sort_order) VALUES
+  ('NURSERY', 0),
+  ('LKG', 1),
+  ('UKG', 2),
+  ('1', 3),
+  ('2', 4),
+  ('3', 5),
+  ('4', 6),
+  ('5', 7),
+  ('6', 8),
+  ('7', 9),
+  ('8', 10);
 
 CREATE TABLE sections (
     id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -30,5 +33,3 @@ INSERT INTO sections (name, sort_order) VALUES
   ('B', 1),
   ('C', 2),
   ('D', 3);
-
-

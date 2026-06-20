@@ -8,3 +8,4 @@ pub mod otp;
 pub mod routes;
 pub mod startup;
 pub mod telemetry;
+mod cache;

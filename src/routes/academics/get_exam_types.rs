@@ -14,19 +14,19 @@ pub struct ExamTypeResponse {
 #[tracing::instrument(name = "getting the Exam types from db", skip(pool))]
 #[get("/exam_types")]
 pub async fn get_exam_types(pool: web::Data<PgPool>) -> Result<HttpResponse, AppError> {
-    let grades = sqlx::query_as!(
-        ExamTypeResponse,
-        r#"
-        SELECT id, name, code
-        FROM exam_types
-        "#
-    )
-    .fetch_all(pool.get_ref())
-    .await
-    .map_err(|e| {
-        tracing::error!(error=?e, "Error loading grades");
-        AppError::Internal
-    })?;
+    // let grades = sqlx::query_as!(
+    //     ExamTypeResponse,
+    //     r#"
+    //     SELECT id, name, code
+    //     FROM exam_types
+    //     "#
+    // )
+    // .fetch_all(pool.get_ref())
+    // .await
+    // .map_err(|e| {
+    //     tracing::error!(error=?e, "Error loading grades");
+    //     AppError::Internal
+    // })?;
 
-    Ok(HttpResponse::Ok().json(grades))
+    Ok(HttpResponse::Ok().finish())
 }

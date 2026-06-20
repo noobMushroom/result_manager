@@ -121,88 +121,88 @@ pub async fn add_result(
 
 #[tracing::instrument(name = "Inserting result", skip(pool, body))]
 async fn insert_result<'a>(pool: &PgPool, body: &InsertResultBody<'a>) -> Result<(), DomainError> {
-    let status = body.marks.status.clone().unwrap_or(Status::PRESENT);
-    match status {
-        Status::ABSENT | Status::MEDICAL => {
-            sqlx::query!(
-                r#"
-                INSERT INTO results (
-                    student_id,
-                    assessment_id,
-                    marks_obtained,
-                    grade,
-                    result_status
-                )
-                VALUES ($1, $2, NULL, NULL, $3)
-                ON CONFLICT (student_id, assessment_id)
-                DO UPDATE SET
-                    marks_obtained = NULL,
-                    grade = NULL,
-                    result_status = EXCLUDED.result_status,
-                    updated_at = now()
-                "#,
-                body.student_id,
-                body.marks.assessment_id,
-                status.as_ref(),
-            )
-            .execute(pool)
-            .await
-            .map_err(|e| {
-                tracing::error!(error=?e, "failed to upsert absent/medical result");
-                DomainError::Internal
-            })?;
-        }
-
-        Status::PRESENT => {
-            if body.marks.marks.is_none() && body.marks.grade.is_none() {
-                // explicit clear
-                sqlx::query!(
-                    r#"
-                    DELETE FROM results
-                    WHERE student_id = $1
-                      AND assessment_id = $2
-                    "#,
-                    body.student_id,
-                    body.marks.assessment_id,
-                )
-                .execute(pool)
-                .await
-                .map_err(|e| {
-                    tracing::error!(error=?e, "failed to delete result");
-                    DomainError::Internal
-                })?;
-            } else {
-                sqlx::query!(
-                    r#"
-                    INSERT INTO results (
-                        student_id,
-                        assessment_id,
-                        marks_obtained,
-                        grade,
-                        result_status
-                    )
-                    VALUES ($1, $2, $3, $4, 'PRESENT')
-                    ON CONFLICT (student_id, assessment_id)
-                    DO UPDATE SET
-                        marks_obtained = EXCLUDED.marks_obtained,
-                        grade = EXCLUDED.grade,
-                        result_status = 'PRESENT',
-                        updated_at = now()
-                    "#,
-                    body.student_id,
-                    body.marks.assessment_id,
-                    body.marks.marks,
-                    body.marks.grade,
-                )
-                .execute(pool)
-                .await
-                .map_err(|e| {
-                    tracing::error!(error=?e, "failed to upsert present result");
-                    DomainError::Internal
-                })?;
-            }
-        }
-    }
+    // let status = body.marks.status.clone().unwrap_or(Status::PRESENT);
+    // match status {
+    //     Status::ABSENT | Status::MEDICAL => {
+    //         sqlx::query!(
+    //             r#"
+    //             INSERT INTO results (
+    //                 student_id,
+    //                 assessment_id,
+    //                 marks_obtained,
+    //                 grade,
+    //                 result_status
+    //             )
+    //             VALUES ($1, $2, NULL, NULL, $3)
+    //             ON CONFLICT (student_id, assessment_id)
+    //             DO UPDATE SET
+    //                 marks_obtained = NULL,
+    //                 grade = NULL,
+    //                 result_status = EXCLUDED.result_status,
+    //                 updated_at = now()
+    //             "#,
+    //             body.student_id,
+    //             body.marks.assessment_id,
+    //             status.as_ref(),
+    //         )
+    //         .execute(pool)
+    //         .await
+    //         .map_err(|e| {
+    //             tracing::error!(error=?e, "failed to upsert absent/medical result");
+    //             DomainError::Internal
+    //         })?;
+    //     }
+    //
+    //     Status::PRESENT => {
+    //         if body.marks.marks.is_none() && body.marks.grade.is_none() {
+    //             // explicit clear
+    //             sqlx::query!(
+    //                 r#"
+    //                 DELETE FROM results
+    //                 WHERE student_id = $1
+    //                   AND assessment_id = $2
+    //                 "#,
+    //                 body.student_id,
+    //                 body.marks.assessment_id,
+    //             )
+    //             .execute(pool)
+    //             .await
+    //             .map_err(|e| {
+    //                 tracing::error!(error=?e, "failed to delete result");
+    //                 DomainError::Internal
+    //             })?;
+    //         } else {
+    //             sqlx::query!(
+    //                 r#"
+    //                 INSERT INTO results (
+    //                     student_id,
+    //                     assessment_id,
+    //                     marks_obtained,
+    //                     grade,
+    //                     result_status
+    //                 )
+    //                 VALUES ($1, $2, $3, $4, 'PRESENT')
+    //                 ON CONFLICT (student_id, assessment_id)
+    //                 DO UPDATE SET
+    //                     marks_obtained = EXCLUDED.marks_obtained,
+    //                     grade = EXCLUDED.grade,
+    //                     result_status = 'PRESENT',
+    //                     updated_at = now()
+    //                 "#,
+    //                 body.student_id,
+    //                 body.marks.assessment_id,
+    //                 body.marks.marks,
+    //                 body.marks.grade,
+    //             )
+    //             .execute(pool)
+    //             .await
+    //             .map_err(|e| {
+    //                 tracing::error!(error=?e, "failed to upsert present result");
+    //                 DomainError::Internal
+    //             })?;
+    //         }
+    //     }
+    // }
 
     Ok(())
 }

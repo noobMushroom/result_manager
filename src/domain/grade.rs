@@ -19,7 +19,7 @@ impl Grade {
             return Err(DomainError::InvalidGrade);
         }
 
-        Ok(Self(s.to_string()))
+        Ok(Self(normalized))
     }
 }
 

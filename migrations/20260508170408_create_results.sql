@@ -1,4 +1,11 @@
 -- Add migration script here
+CREATE TYPE result_status AS ENUM (
+  'present',
+  'absent',
+  'medical',
+  'not_evaluated'
+);
+
 CREATE TABLE results (
   id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
 
@@ -12,7 +19,7 @@ CREATE TABLE results (
   marks_obtained integer,
   grade_obtained TEXT,
 
-  status TEXT NOT NULL DEFAULT 'present',
+  status result_status NOT NULL DEFAULT 'present',
 
   UNIQUE (student_id, subject_id, exam_type_id, term_id),
 
